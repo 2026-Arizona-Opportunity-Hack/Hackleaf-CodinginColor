@@ -1,0 +1,68 @@
+import assert from "node:assert/strict";
+import { chromium } from "@playwright/test";
+
+const browser = await chromium.launch();
+try {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const base = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100";
+  await page.goto(`${base}/follow-ups`);
+  await page.getByLabel("Next step", { exact: true }).fill("Call about renewal");
+  await page.getByLabel("Due date (Phoenix)").fill("2026-11-13");
+  await page.getByRole("button", { name: "Create demo next step" }).click();
+  const overdue = page.getByRole("region", { name: "Overdue next steps" });
+  await overdue.getByRole("heading", { name: "Call about renewal" }).waitFor();
+  await overdue.getByRole("button", { name: "Edit Call about renewal", exact: true }).click();
+  await page.getByLabel("Next step", { exact: true }).fill("Confirm renewal meeting");
+  await page.getByLabel("Due date (Phoenix)").fill("2026-11-14");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  const today = page.getByRole("region", { name: "Today next steps" });
+  await today.getByRole("button", { name: "Complete Confirm renewal meeting", exact: true }).click();
+  await page.getByRole("region", { name: "Completed next steps" }).getByRole("heading", { name: "Confirm renewal meeting" }).waitFor();
+  console.log("PASS create/edit/date regroup/complete next step");
+
+  await page.getByLabel("Outreach donor").selectOption({ label: "Alex Rivera" });
+  assert.equal(await page.getByRole("button", { name: "Create demo draft", exact: true }).isDisabled(), true);
+  await page.getByLabel("Outreach donor").selectOption({ label: "Sam Patel" });
+  assert.equal(await page.getByRole("button", { name: "Create demo draft", exact: true }).isDisabled(), true);
+  await page.getByLabel("Outreach donor").selectOption({ label: "Desert Futures Foundation" });
+  assert.equal(await page.getByRole("button", { name: "Create demo draft", exact: true }).isDisabled(), true);
+  await page.getByLabel("Outreach donor").selectOption({ label: "Jordan Ellis" });
+  await page.getByRole("button", { name: "Create demo draft", exact: true }).click();
+  await page.getByLabel("Message body").fill("Hello Jordan, thank you for supporting Coding in Color. We would welcome a conversation about our next update.");
+  await page.getByLabel("I reviewed this recipient").check();
+  await page.getByRole("button", { name: "Approve demo version", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Download reviewed copy" }).isEnabled(), true);
+  await page.getByLabel("Subject", { exact: true }).fill("Updated quarterly note");
+  assert.equal(await page.getByRole("button", { name: "Download reviewed copy" }).isDisabled(), true);
+  assert.equal(await page.getByLabel("I reviewed this recipient").isChecked(), false);
+  await page.getByLabel("I reviewed this recipient").check();
+  await page.getByRole("button", { name: "Approve demo version", exact: true }).click();
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download reviewed copy" }).click();
+  const download = await downloadEvent;
+  assert.match(download.suggestedFilename(), /^demo-outreach-/);
+  assert.match(await page.getByRole("region", { name: "Quarterly outreach" }).innerText(), /1 of 12 donors/);
+  await page.getByLabel("External attempt result").selectOption("failed");
+  await page.getByLabel("I confirm this fictional attempt").check();
+  await page.getByRole("button", { name: "Record external attempt", exact: true }).click();
+  assert.match(await page.getByRole("region", { name: "Quarterly outreach" }).innerText(), /1 of 12 donors/);
+  await page.getByLabel("External attempt result").selectOption("manual_log");
+  await page.getByLabel("I confirm this fictional attempt").check();
+  await page.getByRole("button", { name: "Record external attempt", exact: true }).click();
+  assert.match(await page.getByRole("region", { name: "Quarterly outreach" }).innerText(), /2 of 12 donors/);
+  assert.equal(await page.getByRole("button", { name: "Record external attempt", exact: true }).isDisabled(), true);
+  console.log("PASS permission blocks/edit invalidation/download/failed and manual history/double-log prevention");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "/tmp/hackleaf-follow-ups-mobile.png", fullPage: true });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  await page.reload();
+  assert.equal(await page.getByRole("heading", { name: "Confirm renewal meeting", exact: true }).count(), 0);
+  assert.equal(await page.getByLabel("Message body").count(), 0);
+  await page.keyboard.press("Tab");
+  assert.equal(await page.getByRole("link", { name: "Skip to content" }).evaluate((element) => element === document.activeElement), true);
+  assert.deepEqual(errors, []);
+  console.log("PASS mobile overflow/keyboard entry/explicit page-session reset/no browser errors");
+} finally { await browser.close(); }
