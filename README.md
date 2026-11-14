@@ -2,6 +2,8 @@
 
 Built at [ASU Fall Hackathon 2026 | Phoenix Hackathon for Nonprofits: Nov 14-15](https://www.ohack.dev/hack/fall-2026) for the public good (MIT license).
 
+**Current status: teammate-ready Next.js foundation, not the completed P0 product.** Run a fictional donor workspace without accounts or keys. Read the [requirements](docs/requirements.md), [architecture](docs/architecture.md), and [three-person work plan](docs/team/README.md) before contributing.
+
 > **⚠️ This is your team's ONE repository — all code goes here.** Please don't create
 > another repo (personal or org). Judges, the Team Dashboard's code-activity card,
 > the public project page and the nonprofit all read **this** repo; work pushed
@@ -43,35 +45,45 @@ Judges score **Scope, Documentation, Polish and Security**, plus a separate **Ac
 
 ## Team
 
-<!-- Replace with real people; link GitHub profiles so this repo works as your portfolio -->
-- [Name](https://github.com/username) — role
-- [Name](https://github.com/username) — role
+- **Kaustubh D** — shared platform, auth, database, reporting API and integration · [agent prompt](docs/team/kaustubh.md)
+- **Vishnu Dwivedi** — donors, imports and retention · [agent prompt](docs/team/vishnu.md)
+- **Aditya Prakash Sahu** — follow-ups, reviewed outreach and funder packets · [agent prompt](docs/team/aditya.md)
 
 ## What we built
 
-<!-- Two or three sentences: the problem, who it helps, what the nonprofit can do now that they couldn't before -->
+Coding in Color needs one reliable place for donor history, board ownership, follow-through and evidence for funder renewals. The base provides a branded responsive workspace, searchable/filterable fictional donor directory, profiles/timelines, retention calculations and separate feature routes for parallel implementation.
+
+Also included: typed domain/validation contracts, source fixtures, optional Supabase clients, initial RLS migration, business-rule/database tests, CI and a protected versioned API boundary. Live sign-in, persistent CRUD/imports, automated ownership transactions, quarterly drafts, message delivery, outcomes integration and packet export remain to be implemented. There is no AI integration, public deployment or real donor data. All unfinished routes say so.
 
 ## Tech stack
 
-- Frontend:
-- Backend:
-- Database:
-- APIs / services:
+- Frontend: Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4; semantic HTML and CIC brand tokens.
+- Backend: Next.js Server Components and Route Handlers; Zod validation. No separate service.
+- Database: Supabase/Postgres migration and RLS foundation; optional free project, not provisioned.
+- Checks: ESLint, TypeScript, Vitest, embedded Postgres policy tests and GitHub Actions; Playwright for browser QA.
+- Cost: free local demo; **no paid services unless organizer sponsorship is confirmed**. See [deployment](docs/deployment.md) for free-tier limits.
 
 ## Run it locally
 
 ```bash
 git clone https://github.com/2026-Arizona-Opportunity-Hack/Hackleaf-CodinginColor.git
 cd Hackleaf-CodinginColor
-cp .env.example .env   # fill in your own values — never commit .env
-# install + start commands here
+nvm install 22
+nvm use 22
+npm ci
+cp .env.example .env.local   # no credentials needed in demo mode
+npm run dev
 ```
+
+Open `http://localhost:3000`. Use Node 22.13+ (22.x). Run `npm run check` and `npm run build` before handing off. `APP_DATA_MODE=live` intentionally closes the fixture workspace until auth and live repositories are implemented.
+
+Teammates: follow [your personal prompt](docs/team/README.md), own only your assigned paths, and request shared-file changes from Kaustubh. All dependency/migration changes go through one owner to reduce merge conflicts.
 
 ## Links
 
-- Live demo:
-- Demo video:
-- Design / docs:
+- Live demo: not deployed yet.
+- Demo video: not recorded yet.
+- Design / docs: [visual reference](docs/design/README.md) · [API proposal](docs/api.md) · [deployment](docs/deployment.md) · [P0 map](docs/requirements.md).
 
 ## After the hackathon
 
