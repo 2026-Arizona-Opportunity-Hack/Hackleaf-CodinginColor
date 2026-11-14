@@ -1,112 +1,77 @@
-import Link from "next/link";
-import { FoundationNotice, PageHeading } from "@/components/page-heading";
-import { demoDonors, demoGifts } from "@/lib/demo/data";
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { demoDate, demoDonors, demoGifts } from "@/lib/demo/data";
 import { formatMoney } from "@/lib/domain/rules";
+import { adaptEvidence } from "./evidence";
+import { assemblePacket } from "./packet";
+import styles from "./reports.module.css";
 
-function grantHistoryByDonor() {
-  return demoDonors
-    .map((donor) => {
-      const gifts = demoGifts.filter((g) => g.donorId === donor.id);
-      const byYear: Record<number, number> = {};
-      for (const g of gifts) {
-        const year = Number(g.receivedOn.slice(0, 4));
-        byYear[year] = (byYear[year] ?? 0) + g.amountCents;
-      }
-      return { donor, byYear, total: gifts.reduce((s, g) => s + g.amountCents, 0) };
-    })
-    .filter((r) => r.total > 0)
-    .sort((a, b) => b.total - a.total);
-}
-
-function fundingByProgram() {
-  const totals: Record<string, number> = {};
-  for (const g of demoGifts) {
-    totals[g.programId] = (totals[g.programId] ?? 0) + g.amountCents;
-  }
-  return Object.entries(totals).sort((a, b) => b[1] - a[1]);
-}
-
-const YEARS = [2025, 2026];
+const funders = demoDonors.filter((donor) => donor.kind !== "individual");
+const demoNow = new Date(`${demoDate}T12:00:00-07:00`);
+const feed = adaptEvidence(null, demoNow);
 
 export function ReportWorkspace() {
-  const history = grantHistoryByDonor();
-  const programs = fundingByProgram();
-
-  return (
-    <>
-      <PageHeading
-        title="A renewal starts with evidence."
-        description="Giving history and program funding in one place — ready to build a packet."
-      />
-
-      <FoundationNotice>
-        Fictional giving data only. Verified program outcomes and funder attribution have not been supplied.
-        Packet export is not implemented; no impact numbers are invented.
-      </FoundationNotice>
-
-      <section>
-        <h2>Funding by program</h2>
-        <div className="table-scroll">
-          <table>
-            <caption>Fictional USD totals across all years · for grant renewal context</caption>
-            <thead>
-              <tr>
-                <th scope="col">Program</th>
-                <th scope="col">Total raised</th>
-              </tr>
-            </thead>
-            <tbody>
-              {programs.map(([programId, cents]) => (
-                <tr key={programId}>
-                  <td>{programId}</td>
-                  <td>{formatMoney(cents)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+  const [selection, setSelection] = useState({ donorId: funders[0].id, start: "2026-01-01", end: demoDate });
+  const [packet, setPacket] = useState(() => assemblePacket(funders[0], demoGifts, selection.start, selection.end, feed, demoNow));
+  const [error, setError] = useState("");
+  const [reviewed, setReviewed] = useState(false);
+  const [message, setMessage] = useState("");
+  function prepare(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      const donor = funders.find((item) => item.id === selection.donorId);
+      if (!donor) throw new Error("Choose a funder.");
+      setPacket(assemblePacket(donor, demoGifts, selection.start, selection.end, feed, demoNow));
+      setReviewed(false); setError(""); setMessage("Packet preview updated. Review it before printing.");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to prepare packet."); }
+  }
+  const changed = packet.donor.id !== selection.donorId || packet.start !== selection.start || packet.end !== selection.end;
+  return <div className={styles.workspace}>
+    <header className={`page-heading ${styles.heading}`}><div><h1>A renewal starts with evidence.</h1><p>Review gifts, program designations and evidence gaps before sharing.</p></div></header>
+    <div className={styles.controls}>
+      <p className={styles.notice}>Fictional demo · No live donor data or verified outcomes are connected. Printing includes this disclosure. Live donor access is not available yet.</p>
+      <form onSubmit={prepare} className={styles.form}>
+        <label>Funder<select value={selection.donorId} onChange={(event) => { setSelection({ ...selection, donorId: event.target.value }); setReviewed(false); }}>
+          {funders.map((funder) => <option key={funder.id} value={funder.id}>{funder.name}</option>)}
+        </select></label>
+        <label>Reporting start<input type="date" required value={selection.start} onChange={(event) => { setSelection({ ...selection, start: event.target.value }); setReviewed(false); }} /></label>
+        <label>Reporting end<input type="date" required value={selection.end} onChange={(event) => { setSelection({ ...selection, end: event.target.value }); setReviewed(false); }} /></label>
+        <button className="button" type="submit">Prepare packet preview</button>
+      </form>
+      {error && <p role="alert">{error}</p>}
+      {changed && <p>Selection changed. Prepare a new preview before printing.</p>}
+      <label className={styles.review}><input type="checkbox" checked={reviewed} disabled={changed} onChange={(event) => setReviewed(event.target.checked)} />I reviewed the gifts, reporting window, attribution and missing evidence.</label>
+      <button className="button" disabled={!reviewed || changed} onClick={() => { setMessage("Print dialog opened. Choose Save as PDF to export; nothing is shared automatically."); window.print(); }}>Print / save PDF</button>
+      <p role="status">{message}</p>
+    </div>
+    <article className={styles.packet} aria-label="Funder packet preview">
+      <p className={styles.notice}><strong>FICTIONAL DEMO PACKET · Not a record of CIC funding or impact.</strong></p>
+      <h2>{packet.donor.name}</h2><p>Reporting window: {packet.start}–{packet.end}, inclusive · America/Phoenix</p><p>Prepared as of {demoDate} · Currency: USD</p>
+      <section><h3>Giving and program designations</h3><p>Total selected gifts: <strong>{formatMoney(packet.totalCents)}</strong> · {packet.gifts.length} gift(s)</p>
+        {!packet.gifts.length ? <p>No gifts for this funder in the selected window. This does not establish a funding or outcome relationship.</p> : <div className={styles.table}><table>
+          <caption>Fictional gift records with source provenance</caption><thead><tr><th>Date / amount</th><th>Program designation</th><th>Source / record</th></tr></thead>
+          <tbody>{packet.gifts.map((gift) => <tr key={gift.id}><td>{gift.receivedOn}<br />{formatMoney(gift.amountCents)}</td><td>{gift.programId}</td><td>{gift.source}<br />{gift.sourceRecordId}<br /><small>Gift ID: {gift.id}</small></td></tr>)}</tbody>
+        </table></div>}
       </section>
-
-      <section>
-        <h2>Grant history by donor</h2>
-        <p>Year-over-year giving per funder — the foundation for a renewal packet.</p>
-        <div className="table-scroll">
-          <table>
-            <caption>Fictional USD giving · all recorded years</caption>
-            <thead>
-              <tr>
-                <th scope="col">Donor</th>
-                <th scope="col">Kind</th>
-                {YEARS.map((y) => <th key={y} scope="col">{y}</th>)}
-                <th scope="col">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map(({ donor, byYear, total }) => (
-                <tr key={donor.id}>
-                  <td><Link href={`/donors/${donor.id}`}>{donor.name}</Link></td>
-                  <td>{donor.kind}</td>
-                  {YEARS.map((y) => (
-                    <td key={y}>{byYear[y] ? formatMoney(byYear[y]) : "—"}</td>
-                  ))}
-                  <td><strong>{formatMoney(total)}</strong></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <section><h3>Verified aggregate outcome evidence</h3><p>{feed.note}</p>
+        {!packet.evidence.length && <p><strong>Outcomes unavailable for this packet. No impact totals are asserted.</strong></p>}
+        {packet.evidence.map((item) => <div key={item.id} className={styles.evidence}>
+          <h4>{item.metric}: {item.value} {item.unit}</h4><p>Program: {item.programId} · Period: {item.periodStart}–{item.periodEnd}</p>
+          <p>Source: <a href={item.sourceUrl} rel="noreferrer">{item.sourceUrl}</a></p><p>Verified: {item.verifiedAt} · Evidence ID: {item.id}</p>
+          {packet.staleIds.includes(item.id) && <p><strong>Stale verification — older than the provisional 90-day threshold; reconfirm with CIC.</strong></p>}
+          <p>Source attribution note: {item.attributionNote}</p>
+        </div>)}
       </section>
-
-      <section>
-        <h2>What a renewal packet needs</h2>
-        <ul className="simple-list">
-          <li>Funder name, reporting period, gifts with source provenance and program designation.</li>
-          <li>Aggregate outcomes with metric, date window, source URL and verification time.</li>
-          <li>Clear attribution wording and an explicit missing-evidence section.</li>
-          <li>Human review before sharing with the funder.</li>
+      <section><h3>Missing data and attribution limits</h3>
+        <ul className={styles.list}>
+          {packet.missing.map((programId) => <li key={programId}>No current, verified evidence wholly within this reporting window for {programId}.</li>)}
+          <li>Funder-to-outcome attribution has not been confirmed by CIC. Gift program designations indicate recorded support; they do not prove that these gifts caused an outcome.</li>
+          <li>No learning gains, dollars-per-student ratios or causal impact claims are calculated.</li>
+          <li>Evidence that only overlaps the reporting window is excluded rather than prorated. Excluded evidence records: {packet.excludedEvidence}.</li>
+          <li>Source integration: {feed.status}. No student records or contact details are included.</li>
         </ul>
-        <p><small>Packet export and outcome evidence require the authenticated aggregate API (Kaustubh) and the Problem 1 outcomes integration (Aditya).</small></p>
       </section>
-    </>
-  );
+    </article>
+  </div>;
 }

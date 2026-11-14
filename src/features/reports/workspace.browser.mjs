@@ -1,0 +1,44 @@
+import assert from "node:assert/strict";
+import { chromium } from "@playwright/test";
+
+const browser = await chromium.launch();
+try {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto(`${process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100"}/reports`);
+  const packet = page.getByRole("article", { name: "Funder packet preview" });
+  assert.match(await packet.innerText(), /\$5,000/);
+  assert.match(await packet.innerText(), /fictional-2026-1/);
+  assert.match(await packet.innerText(), /Outcomes unavailable/);
+  assert.equal(await page.getByRole("button", { name: "Print / save PDF" }).isDisabled(), true);
+  await page.getByLabel("I reviewed the gifts").check();
+  assert.equal(await page.getByRole("button", { name: "Print / save PDF" }).isEnabled(), true);
+  await page.getByLabel("Reporting start").fill("2027-01-01");
+  assert.equal(await page.getByRole("button", { name: "Print / save PDF" }).isDisabled(), true);
+  await page.getByRole("button", { name: "Prepare packet preview" }).click();
+  assert.match(await page.getByRole("alert").filter({ hasText: "Reporting start" }).innerText(), /start must be on or before/);
+  await page.getByLabel("Reporting start").fill("2024-01-01");
+  await page.getByLabel("Reporting end").fill("2024-12-31");
+  await page.getByRole("button", { name: "Prepare packet preview" }).click();
+  assert.match(await packet.innerText(), /No gifts for this funder/);
+  await page.getByLabel("Reporting start").fill("2026-01-01");
+  await page.getByLabel("Reporting end").fill("2026-11-14");
+  await page.getByRole("button", { name: "Prepare packet preview" }).click();
+  await page.getByLabel("I reviewed the gifts").check();
+  await page.evaluate(() => { window.print = () => { document.body.dataset.printRequested = "yes"; }; });
+  await page.getByRole("button", { name: "Print / save PDF" }).click();
+  assert.equal(await page.getAttribute("body", "data-print-requested"), "yes");
+  await page.emulateMedia({ media: "print" });
+  assert.equal(await page.getByRole("navigation").isVisible(), false);
+  assert.equal(await page.getByRole("button", { name: "Prepare packet preview" }).isVisible(), false);
+  assert.equal(await packet.isVisible(), true);
+  await page.pdf({ path: "/tmp/hackleaf-demo-packet.pdf", preferCSSPageSize: true, printBackground: true });
+  await page.screenshot({ path: "/tmp/hackleaf-packet-print.png", fullPage: true });
+  await page.emulateMedia({ media: "screen" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  await page.screenshot({ path: "/tmp/hackleaf-reports-mobile.png", fullPage: true });
+  assert.deepEqual(errors, []);
+  console.log("PASS gifts/provenance/missing outcomes/review and selection invalidation/invalid window/empty gifts/print/PDF/mobile/no browser errors");
+} finally { await browser.close(); }
