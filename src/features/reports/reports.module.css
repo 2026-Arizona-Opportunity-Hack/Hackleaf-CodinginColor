@@ -1,0 +1,33 @@
+.workspace { display: grid; gap: 24px; }
+.heading { margin-bottom: 0; }
+.controls { display: grid; gap: 20px; }
+.notice { background: var(--tint); border-left: 3px solid var(--brand); padding: 16px; }
+.form { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; align-items: end; }
+.form label { display: grid; gap: 8px; font-weight: 600; min-width: 0; }
+.form button { grid-column: 1 / -1; justify-self: start; }
+.review { display: flex; gap: 12px; align-items: center; }
+.review input { width: 20px; min-height: 20px; flex-shrink: 0; }
+.controls button { justify-self: start; }
+.controls button:disabled { color: var(--muted); border-color: var(--line); cursor: default; }
+.packet { display: grid; gap: 24px; border: 1px solid var(--line); padding: 28px; overflow-wrap: anywhere; }
+.packet section { display: grid; gap: 14px; }
+.packet h4 { margin: 0; }
+.evidence { display: grid; gap: 8px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.table { overflow-x: auto; }
+.list { list-style: disc; padding-left: 20px; display: grid; gap: 10px; }
+@media (max-width: 850px) { .form { grid-template-columns: 1fr; } .packet { padding: 16px; } }
+@media print {
+  @page { size: auto; margin: 16mm; }
+  :global(body):has(.packet) :global(.sidebar), :global(body):has(.packet) :global(.workspace-bar), :global(body):has(.packet) :global(.skip-link), .controls, .heading { display: none !important; }
+  :global(body):has(.packet) :global(.app-shell) { display: block; min-height: auto; }
+  :global(body):has(.packet) :global(main) { padding: 0; max-width: none; }
+  .workspace, .packet, .packet section { display: block; }
+  .packet { border: none; padding: 0; font-size: 11pt; }
+  .packet h2, .packet h3 { margin: 14pt 0 8pt; break-after: avoid; }
+  .packet p, .packet ul, .packet table { margin: 8pt 0; }
+  .notice { background: white; border: 1px solid black; }
+  .table { overflow: visible; }
+  .packet th, .packet td { padding: 6pt; }
+  .packet tr, .evidence { break-inside: avoid; }
+  .packet thead { display: table-header-group; }
+}

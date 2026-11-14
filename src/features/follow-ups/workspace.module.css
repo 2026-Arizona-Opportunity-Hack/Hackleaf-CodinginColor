@@ -1,0 +1,17 @@
+.stack { display: grid; gap: 24px; }
+.notice { padding: 16px 20px; background: var(--tint); border-left: 3px solid var(--brand); }
+.form { display: grid; gap: 16px; padding: 20px; border: 1px solid var(--line); border-radius: 6px; }
+.form label { display: grid; gap: 6px; font-weight: 600; }
+.form textarea { width: 100%; min-height: 180px; padding: 12px; border: 1px solid #777; border-radius: 4px; font-weight: 400; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.card { display: grid; gap: 12px; border-bottom: 1px solid var(--line); padding: 20px 0; overflow-wrap: anywhere; }
+.card h3 { font-size: 21px; }
+.meta { color: var(--muted); }
+.error { color: #9f2020; font-weight: 600; }
+.stack button { min-height: 44px; padding: 8px 16px; border: 1px solid var(--brand); border-radius: 4px; background: white; color: var(--brand); cursor: pointer; }
+.stack button:hover { background: var(--tint); }
+.stack button:disabled { color: var(--muted); border-color: var(--line); cursor: default; }
+.stack fieldset { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); min-width: 0; }
+.stack input[type="checkbox"] { width: 20px; min-height: 20px; }
+.stack label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 12px; }
+@media (max-width: 640px) { .form { padding: 14px; } .row > button { flex: 1; } }
