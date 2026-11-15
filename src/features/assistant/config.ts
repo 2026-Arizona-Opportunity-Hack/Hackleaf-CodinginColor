@@ -10,4 +10,4 @@ export function aiConfiguration() {
   };
 }
 export function aiConfigured(){return !!aiConfiguration().apiKey;}
-export function demoAIEnabled(){return process.env.AI_DEMO_ENABLED==='true'&&aiConfigured();}
+export function demoAIEnabled(){return (process.env.APP_DATA_MODE==='live'||process.env.AI_DEMO_ENABLED==='true')&&aiConfigured();}

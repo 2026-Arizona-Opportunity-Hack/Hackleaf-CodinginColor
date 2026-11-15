@@ -8,6 +8,8 @@ import { promisify } from "node:util";
 import { upgradeDemoData } from "./upgrade";
 import { DEMO_ACCOUNTS, today, type DemoData } from "./model";
 import { queueStaffEmail,deliverStaffEmail } from "@/features/reports/staff-email";
+import { isDemoWorkspace } from "@/lib/workspace";
+import { readLiveCaseWorkspace, mutateLiveCaseWorkspace } from "./live-store";
 const scrypt=promisify(scryptCallback);
 export async function passwordHash(password:string,salt:string) { return (await scrypt(password,salt,64) as Buffer).toString("hex"); }
 export async function verifyPassword(password:string,user:{salt:string;passwordHash:string}) {
@@ -39,6 +41,10 @@ async function load(dir:string,allowUpgrade=false):Promise<DemoData> {
   return data;
 }
 export async function readDemoData(organization?:string):Promise<DemoData> {
+  if (!isDemoWorkspace()) {
+    if (organization && organization !== "coding-in-color") throw new Error("This account's live workspace is Coding in Color.");
+    return (await readLiveCaseWorkspace()).data;
+  }
   const dir=await demoDirectory(organization);
   try { return await load(dir); } catch(error) { if(!["ENOENT","EUPGRADE"].includes((error as NodeJS.ErrnoException).code??"")) throw error; }
   return mutateDemoData(data=>structuredClone(data),organization);
@@ -46,6 +52,10 @@ export async function readDemoData(organization?:string):Promise<DemoData> {
 // A filesystem lock plus atomic rename keeps this single-instance demo's writes
 // consistent across concurrent requests. This is not a production database.
 export async function mutateDemoData<T>(operation:(data:DemoData)=>T|Promise<T>,organization?:string):Promise<T> {
+  if (!isDemoWorkspace()) {
+    if (organization && organization !== "coding-in-color") throw new Error("This account's live workspace is Coding in Color.");
+    return mutateLiveCaseWorkspace(operation);
+  }
   const org=organization??await currentTenant(),dir=await demoDirectory(org);await mkdir(dir,{recursive:true,mode:0o700});
   const lock=join(dir,"write.lock");let locked=false;
   for(let i=0;i<250;i++){try{await mkdir(lock,{mode:0o700});locked=true;break;}catch(error){if((error as NodeJS.ErrnoException).code!=="EEXIST")throw error;await new Promise(resolve=>setTimeout(resolve,20));}}
