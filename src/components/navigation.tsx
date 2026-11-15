@@ -14,10 +14,11 @@ const links = [
 
 export function Navigation({ session }: { session?: SessionView | null }) {
   const pathname = usePathname();
-  const demo = useOptionalGivingWorkspace();
-  const liveLinks = session?.accountId ? [["/dashboard", "Dashboard"], ["/donors", "Donors"], ["/donation-requests", "Donation requests"]] : session?.status === "unavailable" ? [["/dashboard", "Dashboard"]] : [["/auth/sign-in", "Staff sign-in"], ["/auth/register", "Register as staff"]];
-  const demoLinks = [["/dashboard","Dashboard"],["/clients","Clients"],["/appointments","Appointments"],["/client-reports","Service reports"],["/client-funder-reports","Funder templates"],["/client-intake","Photo intake"],...(session?.role==="admin"?[["/client-integrations","Integrations"],["/client-data","Client CSV"],["/client-settings","Client settings"],["/audit","Audit log"]]:[]),...links];
-  const visibleLinks = demo && session?.accountId ? demoLinks : liveLinks;
+  useOptionalGivingWorkspace();
+  const adminLinks: string[][] = session?.role === "admin" ? [["/client-integrations","Integrations"],["/client-data","Client CSV"],["/client-settings","Client settings"],["/audit","Audit log"],["/admin/members","Staff members"]] : [];
+  const demoLinks = [["/dashboard","Dashboard"],["/clients","Clients"],["/appointments","Appointments"],["/client-reports","Service reports"],["/client-funder-reports","Funder templates"],["/client-intake","Photo intake"],...adminLinks,...links];
+  const signedOutLinks = session?.status === "unavailable" ? [["/dashboard", "Dashboard"]] : [["/auth/sign-in", "Staff sign-in"], ["/auth/register", "Register as staff"]];
+  const visibleLinks = session?.accountId ? demoLinks : signedOutLinks;
   return <nav aria-label="Main navigation">{visibleLinks.map(([href, label]) => {
     const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
     return <Link key={href} href={href} aria-current={active ? "page" : undefined}>{label}</Link>;
