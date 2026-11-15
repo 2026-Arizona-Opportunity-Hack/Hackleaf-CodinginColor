@@ -21,9 +21,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   const demo = isDemoWorkspace();
   const shell = <div className="app-shell"><aside className="sidebar"><Link href="/" className="wordmark">Hackleaf<span>Coding in Color</span></Link>
       <Navigation /><p className="sidebar-note">Built for relationships.</p></aside>
-      <main id="main" tabIndex={-1}><div className="workspace-bar"><span>{demo ? "Demo workspace · Fictional records only" : "Live workspace · Setup required"}</span>
+      <main id="main" tabIndex={-1}><div className="workspace-bar"><span>{demo ? "Demo workspace · Fictional records only" : "Live workspace · Coding in Color"}</span>
         {demo ? <time dateTime="2026-11-14">November 14, 2026</time> : null}</div>
-        {demo ? children : <section className="setup-state"><h1>Connect your live workspace.</h1><p>Live sign-in and data access are not connected in this foundation. No donor records are loaded.</p><p>Follow the deployment guide to complete authentication and validate access policies before enabling live use.</p></section>}
+        {children}
       </main></div>;
   return <html lang="en"><body><a className="skip-link" href="#main">Skip to content</a>{demo ? <AssistantWorkspaceProvider><DemoWorkspaceProvider>{shell}<ChatWidget demo /></DemoWorkspaceProvider></AssistantWorkspaceProvider> : <>{shell}<ChatWidget demo={false} /></>}</body></html>;
 }
