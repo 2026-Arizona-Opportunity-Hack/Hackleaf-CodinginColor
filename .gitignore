@@ -29,3 +29,6 @@ Thumbs.db
 *.log
 *.tsbuildinfo
 coverage/
+
+# Local fictional client demo store (includes password hashes/session hashes)
+.demo-data/

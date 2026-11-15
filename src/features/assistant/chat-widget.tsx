@@ -1,9 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useOptionalDemoWorkspace } from "@/features/donor-portal/demo-workspace";
 import { AssistantIcon } from "./icons";
 import styles from "./chat.module.css";
 
@@ -29,9 +27,5 @@ function ScopedWidget({ demo }: { demo: boolean }) {
 }
 
 export function ChatWidget({ demo }: { demo: boolean }) {
-  const pathname = usePathname();
-  const workspace = useOptionalDemoWorkspace();
-  // A donor entry/logout or change of audience destroys the old chat and proposals.
-  const scope = pathname.startsWith("/donor-portal") ? `donor:${workspace?.currentId ?? "visitor"}` : "staff";
-  return <ScopedWidget key={`${demo}:${scope}`} demo={demo} />;
+  return <ScopedWidget key={String(demo)} demo={demo} />;
 }

@@ -12,7 +12,6 @@ export function actionBefore(snapshot: DemoSnapshot, action: Action): Record<str
   const input = action.input;
   if ("taskId" in input) return snapshot.relationships.tasks.find((t) => t.id === input.taskId) ?? {};
   if ("requestId" in input) return snapshot.giving.requests.find((r) => r.id === input.requestId) ?? {};
-  if (action.name === "update_my_profile") return snapshot.profile ?? {};
   if ("donorId" in input) return snapshot.relationships.donors.find((d) => d.id === input.donorId) ?? {};
   return {};
 }
@@ -64,10 +63,7 @@ export function applyDemoAction(current: DemoSnapshot, action: Action, id: strin
       Object.assign(request, { campaign: action.input.campaign, goalCents: action.input.goalCents, note: action.input.note, state: action.input.state });
       next.giving.allocations = allocateDonations(next.giving.requests, next.giving.gifts, next.giving.allocations); break;
     }
-    case "update_my_profile": {
-      if (!next.profile) throw new Error("Enter your donor demo first.");
-      Object.assign(next.profile, action.input); break;
-    }
+
   }
   return next;
 }

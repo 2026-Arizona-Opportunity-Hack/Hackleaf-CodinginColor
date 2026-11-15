@@ -8,12 +8,12 @@ function cell(value: string | number) {
   return `"${text.replaceAll('"', '""')}"`;
 }
 
-export function requestsCsv(requests: readonly DonationRequest[], allocations: readonly Allocation[]) {
+export function requestsCsv(requests: readonly DonationRequest[], allocations: readonly Allocation[], options = { label: "Fictional demo", programs: programs as readonly { id: string; name: string }[] }) {
   const rows: (string | number)[][] = [["Workspace", "Request ID", "Donation title", "Priority", "Program", "Currency", "Amount required", "Amount raised", "Amount remaining", "Percent funded", "Status", "Frequency", "Preferred giving channel", "Description"]];
   for (const request of [...requests].sort((a, b) => a.priority - b.priority)) {
     const data = funding(request, allocations);
-    rows.push(["Fictional demo", request.id, request.campaign, request.priority,
-      programs.find((program) => program.id === request.program_id)?.name ?? request.program_id, request.currency,
+    rows.push([options.label, request.id, request.campaign, request.priority,
+      options.programs.find((program) => program.id === request.program_id)?.name ?? request.program_id, request.currency,
       (request.goalCents / 100).toFixed(2), (data.raisedCents / 100).toFixed(2), (data.remainingCents / 100).toFixed(2),
       data.percent, data.status, frequencies[request.frequency], sources.find((source) => source.value === request.source)?.label ?? request.source, request.note]);
   }

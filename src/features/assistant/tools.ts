@@ -115,11 +115,7 @@ export async function runTool(context: ToolContext, name: string, raw: unknown, 
     const { requests, allocations } = context.snapshot.giving;
     return { fictional: true, requests: requests.map((r) => ({ ...r, ...funding(r, allocations) })), note: "USD cents. These are goals and allocation simulations, not verified received payments." };
   }
-  if (name === "my_donor_profile") {
-    const profile = context.snapshot?.profile;
-    if (!profile || !context.snapshot) return { status: "unavailable", note: "Enter the fictional donor demo to view your own profile. Real donor identity binding is not connected." };
-    return { fictional: true, profile: { id: profile.id, name: profile.type === "organization" ? profile.organization_name : `${profile.first_name} ${profile.last_name}`, email: profile.email, phone: profile.phone, is_anonymous: profile.is_anonymous, do_not_contact: profile.do_not_contact }, gifts: context.snapshot.giving.gifts.filter((g) => g.donorId === profile.id), note: "Only this profile's gifts are included. Demo entry is not real authentication." };
-  }
+
   if (name === "preview_import") {
     if (!context.attachment) return { status: "attachment_required", note: "Attach a CSV using the paperclip button. Nothing is imported by this tool." };
     const parsed = parseCsv(context.attachment.csv);

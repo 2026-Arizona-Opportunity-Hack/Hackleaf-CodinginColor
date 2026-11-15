@@ -1,0 +1,19 @@
+# Local-file, single-instance fictional demo. No SQL or paid services provisioned.
+services:
+  - type: web
+    name: hackleaf-client-demo
+    runtime: node
+    plan: free
+    autoDeployTrigger: off
+    buildCommand: npm ci && npm run build
+    startCommand: npm start -- --hostname 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: APP_DATA_MODE
+        value: demo
+      - key: DEMO_DATA_DIR
+        value: /tmp/hackleaf-client-demo
+      - key: AI_DEMO_ENABLED
+        value: 'false'

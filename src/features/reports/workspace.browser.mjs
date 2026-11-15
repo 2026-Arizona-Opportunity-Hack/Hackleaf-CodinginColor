@@ -1,9 +1,11 @@
+import { loginDemo } from "../demo-auth/browser-session.mjs";
 import assert from "node:assert/strict";
 import { chromium } from "@playwright/test";
 
 const browser = await chromium.launch();
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  await loginDemo(page, process.env.TEST_BASE_URL ?? "http://127.0.0.1:3102");
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100"}/reports`);

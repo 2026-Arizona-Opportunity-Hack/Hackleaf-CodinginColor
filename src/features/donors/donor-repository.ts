@@ -26,11 +26,12 @@ export async function fetchLiveDonors(search?: string, ownerId?: string): Promis
     const donorIds = donors.map((d) => d.id);
     const ownerIds = [...new Set(donors.map((d) => d.owner_id))];
 
-    const [{ data: members }, { data: gifts }] = await Promise.all([
+    const [{ data: members, error: membersError }, { data: gifts, error: giftsError }] = await Promise.all([
       supabase.from("members").select("id, display_name").in("id", ownerIds),
       supabase.from("gifts").select("donor_id, amount_cents, source").in("donor_id", donorIds),
     ]);
 
+    if (membersError || giftsError) return null;
     const memberMap: Record<string, string> = Object.fromEntries(
       (members ?? []).map((m) => [m.id, m.display_name as string]),
     );
@@ -72,7 +73,7 @@ export async function fetchLiveDonor(id: string): Promise<LiveDonorDetail | null
       .single();
     if (error || !d) return null;
 
-    const [{ data: members }, { data: gifts }, { data: comms }] = await Promise.all([
+    const [{ data: members, error: membersError }, { data: gifts, error: giftsError }, { data: comms, error: commsError }] = await Promise.all([
       supabase.from("members").select("id, display_name").eq("id", d.owner_id).single(),
       supabase.from("gifts").select("id, amount_cents, received_on, program_id, source")
         .eq("donor_id", id).order("received_on", { ascending: false }),
@@ -80,6 +81,7 @@ export async function fetchLiveDonor(id: string): Promise<LiveDonorDetail | null
         .eq("donor_id", id).order("occurred_at", { ascending: false }),
     ]);
 
+    if (membersError || giftsError || commsError) return null;
     const totalCents = (gifts ?? []).reduce((s, g) => s + (g.amount_cents as number), 0);
     return {
       id: d.id, name: d.name,

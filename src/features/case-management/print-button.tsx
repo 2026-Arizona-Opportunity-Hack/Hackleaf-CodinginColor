@@ -1,0 +1,2 @@
+"use client";
+export function PrintReportButton(){return <><style>{`@media print { .sidebar,.workspace-bar,.skip-link,nav,button,form,[role="dialog"],[aria-label="Open Hackleaf assistant"],[aria-label="Close Hackleaf assistant"] {display:none!important} .app-shell{display:block!important} main{padding:0!important} }`}</style><button className="button" onClick={()=>window.print()}>Print / Save as PDF</button></>;}
