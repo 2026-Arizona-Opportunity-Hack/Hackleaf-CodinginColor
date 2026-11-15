@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { demoDonors, demoMembers, donorGiving } from "@/lib/demo/data";
 import { formatMoney } from "@/lib/domain/rules";
+import { useAssistantWorkspace } from "@/features/assistant/workspace-context";
 
 export function DonorDirectory() {
+  const workspace = useAssistantWorkspace();
+  const donors = workspace?.relationships.donors ?? demoDonors;
   const [query, setQuery] = useState("");
   const [owner, setOwner] = useState("");
-  const rows = demoDonors.filter((d) => d.name.toLowerCase().includes(query.trim().toLowerCase()) && (!owner || d.ownerId === owner));
+  const rows = donors.filter((d) => d.name.toLowerCase().includes(query.trim().toLowerCase()) && (!owner || d.ownerId === owner));
   return <><form className="filters" onSubmit={(event) => event.preventDefault()} role="search" aria-label="Find donors">
     <label>Search donors<input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name" /></label>
     <label>Board-member owner<select value={owner} onChange={(e) => setOwner(e.target.value)}><option value="">All owners</option>{demoMembers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>

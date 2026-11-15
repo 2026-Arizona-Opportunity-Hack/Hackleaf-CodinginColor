@@ -26,6 +26,6 @@ export function DonorWelcome() {
   return <PortalFrame title="A little support. A new possibility." description="Support the resources behind Coding in Color’s programs.">
     <div className={styles.welcome}><section><h2>Make your support count.</h2><p>Create a donor profile, explore the funding queue and keep your giving history in one place.</p>
       <div className={styles.actions}><Link className={styles.primary} href="/donor-portal/register">Register as donor</Link><Link className={styles.secondary} href="/donor-portal/login">Login as donor</Link></div>
-    </section><aside><h3>How giving works</h3><ol><li>Choose an amount and program preference.</li><li>Review how your contribution follows the NGO’s priority order.</li><li>See your simulated contribution and allocation in your history.</li></ol><p>Live giving will use the approved donation provider when connected.</p></aside></div>
+    </section><aside><h3>How giving works</h3><ol><li>Choose an amount and giving frequency.</li><li>Review how your contribution follows the NGO’s priority order.</li><li>See your simulated contribution and allocation in your history.</li></ol><p>Live giving will use the approved donation provider when connected.</p></aside></div>
   </PortalFrame>;
 }
