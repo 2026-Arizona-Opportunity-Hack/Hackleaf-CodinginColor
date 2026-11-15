@@ -1,14 +1,89 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { FoundationNotice, PageHeading } from "@/components/page-heading";
 import { demoDonors, donorGiving } from "@/lib/demo/data";
 import { classifyRetention, formatMoney } from "@/lib/domain/rules";
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export function RetentionWorkspace() {
-  return <><PageHeading title="See the people behind the totals." description="Find new, growing, steady, and lapsed donor relationships." />
-    <FoundationNotice>Illustrative January 1–November 14 comparisons in 2025 and 2026. All fixture gifts fall within those windows. CIC’s fiscal-year, refund and lapse definitions still need confirmation; live period filtering is not connected.</FoundationNotice>
-    <div className="table-scroll"><table><caption>Fictional USD giving · equivalent year-to-date windows</caption><thead><tr><th scope="col">Donor</th><th scope="col">2025 YTD</th><th scope="col">2026 YTD</th><th scope="col">Relationship</th></tr></thead><tbody>{demoDonors.map((d) => {
-      const previous = donorGiving(d.id, 2025), current = donorGiving(d.id, 2026);
-      return <tr key={d.id}><td><Link href={`/donors/${d.id}`}>{d.name}</Link></td><td>{formatMoney(previous)}</td><td>{formatMoney(current)}</td><td>{classifyRetention(previous, current)}</td></tr>;
-    })}</tbody></table></div>
-  </>;
+  const [prevYear, setPrevYear] = useState(CURRENT_YEAR - 1);
+  const [currYear, setCurrYear] = useState(CURRENT_YEAR);
+
+  const rangeError = currYear <= prevYear ? "Current period must be after previous period." : null;
+
+  return (
+    <>
+      <PageHeading
+        title="See the people behind the totals."
+        description="Find new, growing, steady, and lapsed donor relationships."
+      />
+      <FoundationNotice>
+        Fictional fixture data only. CIC&apos;s fiscal-year start month, refund and lapse
+        thresholds still need confirmation before live use.
+        Live Supabase period filtering is not yet connected.
+      </FoundationNotice>
+
+      <section>
+        <h2>Comparison periods</h2>
+        <form className="filters" onSubmit={(e) => e.preventDefault()}>
+          <label>
+            Previous year
+            <input
+              type="number"
+              min={2020}
+              max={CURRENT_YEAR}
+              value={prevYear}
+              onChange={(e) => setPrevYear(Number(e.target.value))}
+            />
+          </label>
+          <label>
+            Current year
+            <input
+              type="number"
+              min={2020}
+              max={CURRENT_YEAR + 1}
+              value={currYear}
+              onChange={(e) => setCurrYear(Number(e.target.value))}
+            />
+          </label>
+        </form>
+        {rangeError && <p role="alert">{rangeError}</p>}
+      </section>
+
+      {!rangeError && (
+        <div className="table-scroll">
+          <table>
+            <caption>
+              Fictional USD giving · Jan 1 – Nov 14 · {prevYear} vs {currYear}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Donor</th>
+                <th scope="col">{prevYear} YTD</th>
+                <th scope="col">{currYear} YTD</th>
+                <th scope="col">Relationship</th>
+              </tr>
+            </thead>
+            <tbody>
+              {demoDonors.map((d) => {
+                const previous = donorGiving(d.id, prevYear);
+                const current = donorGiving(d.id, currYear);
+                return (
+                  <tr key={d.id}>
+                    <td><Link href={`/donors/${d.id}`}>{d.name}</Link></td>
+                    <td>{formatMoney(previous)}</td>
+                    <td>{formatMoney(current)}</td>
+                    <td>{classifyRetention(previous, current)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
 }

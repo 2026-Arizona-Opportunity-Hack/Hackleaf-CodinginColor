@@ -7,6 +7,10 @@ import type { GivingSource } from "@/lib/domain/types";
 import { parseCsv } from "./csv-parser";
 import { adaptRow, validateHeaders, type ImportedGift } from "./source-adapter";
 
+const isLiveMode = !!(
+  typeof process !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_URL
+);
+
 const SOURCES: { value: GivingSource; label: string }[] = [
   { value: "spreadsheet", label: "Spreadsheet" },
   { value: "zeffy", label: "Zeffy" },
@@ -26,6 +30,37 @@ export function ImportWorkspace() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [committing, setCommitting] = useState(false);
+  const [commitResult, setCommitResult] = useState<string | null>(null);
+
+  async function handleCommit() {
+    if (!preview) return;
+    setCommitting(true);
+    setCommitResult(null);
+    try {
+      const res = await fetch("/api/imports/commit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gifts: preview.valid, source, fileName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCommitResult(`Error: ${data.error ?? "Unknown error"}`);
+      } else {
+        setCommitResult(
+          `Committed ${data.committed} gift${data.committed !== 1 ? "s" : ""}, ` +
+          `${data.skipped} skipped (duplicates), ` +
+          `${data.donorsCreated} new donor${data.donorsCreated !== 1 ? "s" : ""} created.`,
+        );
+        setPreview(null);
+        setFileName(null);
+      }
+    } catch {
+      setCommitResult("Network error. Try again.");
+    } finally {
+      setCommitting(false);
+    }
+  }
 
   function handleFile(file: File) {
     setFileError(null);
@@ -164,14 +199,29 @@ export function ImportWorkspace() {
 
           <section>
             <h2>Commit</h2>
-            <p>
-              Transactional import requires Kaustubh&apos;s authenticated commit primitive (not yet merged).
-              Resolve all row errors and shared-email matches before committing.
-              This preview does not modify any data.
-            </p>
-            <button type="button" disabled aria-disabled="true">
-              Commit {preview.valid.length} row{preview.valid.length !== 1 ? "s" : ""} (pending)
+            {!isLiveMode ? (
+              <p>
+                Live import requires Supabase setup.
+                Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> in <code>.env.local</code> and <code>APP_DATA_MODE=live</code>.
+              </p>
+            ) : sharedEmails.length > 0 ? (
+              <p role="alert">Resolve all shared-email matches before committing.</p>
+            ) : preview.errors.length > 0 ? (
+              <p role="alert">Fix all row errors before committing.</p>
+            ) : (
+              <p>All {preview.valid.length} row{preview.valid.length !== 1 ? "s" : ""} valid. Commit is permanent and cannot be undone from this interface.</p>
+            )}
+            <button
+              type="button"
+              onClick={handleCommit}
+              disabled={!isLiveMode || committing || sharedEmails.length > 0 || preview.errors.length > 0}
+              aria-disabled={!isLiveMode || committing || sharedEmails.length > 0 || preview.errors.length > 0}
+            >
+              {committing
+                ? "Committing…"
+                : `Commit ${preview.valid.length} row${preview.valid.length !== 1 ? "s" : ""}${!isLiveMode ? " (setup required)" : ""}`}
             </button>
+            {commitResult && <p role="status" aria-live="polite">{commitResult}</p>}
           </section>
         </>
       )}
