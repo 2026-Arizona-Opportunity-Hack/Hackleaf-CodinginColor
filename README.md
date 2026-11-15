@@ -105,13 +105,13 @@ files rather than Supabase Storage. Webhooks work locally; connecting a hosted
 Zapier account needs a reachable HTTPS deployment. Salesforce/DonorPerfect OAuth
 sync is not configured.
 
-### Optional one-click demo deployment
+### One-click deployment
 
-Public deployment was not performed because the user selected a local demo.
-After pushing this branch (or merging it into main), the owner can use the
-`render.yaml` blueprint and [deployment guide](docs/client-demo.md).
+Deploy the demo workspace to Vercel (recommended) or Render:
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2F2026-Arizona-Opportunity-Hack%2FHackleaf-CodinginColor%2Ftree%2Ffeat%2Faditya-client-p2-demo)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F2026-Arizona-Opportunity-Hack%2FHackleaf-CodinginColor&project-name=hackleaf&env=APP_DATA_MODE&envDescription=Set%20to%20%22demo%22%20for%20fictional%20records%20or%20%22live%22%20to%20connect%20Supabase)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2F2026-Arizona-Opportunity-Hack%2FHackleaf-CodinginColor)
 
 The blueprint selects a free Node service and creates no SQL service. Review the
 plan in your Render account before deploying. Its temporary file store resets on
@@ -173,7 +173,7 @@ Teammates: follow [your personal prompt](docs/team/README.md), own only your ass
 
 ## Links
 
-- Live demo: not deployed yet.
+- Live demo: **[hackleaf.vercel.app](https://hackleaf.vercel.app)**
 - Demo video: not recorded yet.
 - Design / docs: [visual reference](docs/design/README.md) · [API proposal](docs/api.md) · [deployment](docs/deployment.md) · [P0 map](docs/requirements.md).
 
