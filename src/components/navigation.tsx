@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation";
 import type { SessionView } from "@/features/live-workspace/session-view";
 
 const demoOnlyLinks = [
-  ["/", "Overview"], ["/clients", "Clients"], ["/appointments", "Appointments"],
+  ["/dashboard", "Dashboard"], ["/donors", "Donors"], ["/donation-requests", "Donation requests"], ["/", "Overview"], ["/clients", "Clients"], ["/appointments", "Appointments"],
   ["/client-reports", "Service reports"], ["/client-funder-reports", "Funder templates"],
   ["/client-intake", "Photo intake"],
+  ["/follow-ups", "Follow-ups"], ["/retention", "Retention"], ["/reports", "Funder packets"],
 ] as const;
 
 const demoAdminLinks = [
+  ["/imports", "Imports"],
   ["/client-integrations", "Integrations"], ["/client-data", "Client CSV"],
   ["/client-settings", "Client settings"], ["/audit", "Audit log"],
 ] as const;

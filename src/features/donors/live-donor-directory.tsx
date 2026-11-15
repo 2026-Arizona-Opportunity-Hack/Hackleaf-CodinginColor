@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/domain/rules";
 import type { LiveDonorRow } from "./donor-repository";
+import { FundingChart } from "./funding-chart";
 
 export function LiveDonorDirectory({ initialDonors }: { initialDonors: LiveDonorRow[] }) {
   const [search, setSearch] = useState("");
@@ -15,8 +16,7 @@ export function LiveDonorDirectory({ initialDonors }: { initialDonors: LiveDonor
   if (initialDonors.length === 0) {
     return (
       <div>
-        <p>No donors found. Import a CSV file to add donors.</p>
-        <Link href="/imports">Go to Imports</Link>
+        <p>No donor relationships are available to your account. Register a donor above; Staff / Board members can also ask an Admin to assign a relationship.</p>
       </div>
     );
   }
@@ -61,6 +61,7 @@ export function LiveDonorDirectory({ initialDonors }: { initialDonors: LiveDonor
           </tbody>
         </table>
       </div>
+      <FundingChart gifts={filtered.flatMap(d=>d.funding)} scope="Visible donor relationships"/>
     </>
   );
 }

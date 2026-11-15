@@ -6,12 +6,18 @@ import { formatMoney } from "@/lib/domain/rules";
 import { adaptEvidence } from "./evidence";
 import { assemblePacket } from "./packet";
 import styles from "./reports.module.css";
+import { useAssistantWorkspace } from "@/features/assistant/workspace-context";
+import type { Donor } from "@/lib/domain/types";
 
-const funders = demoDonors.filter((donor) => donor.kind !== "individual");
 const demoNow = new Date(`${demoDate}T12:00:00-07:00`);
 const feed = adaptEvidence(null, demoNow);
 
 export function ReportWorkspace() {
+  const workspace=useAssistantWorkspace(),funders=(workspace?.relationships.donors??demoDonors).filter(d=>d.kind!=="individual");
+  if(!funders.length)return <section><h1>Funder packets</h1><p>No funder relationships are assigned to your account.</p></section>;
+  return <ReportBuilder key={funders.map(f=>f.id).join(':')} funders={funders}/>;
+}
+function ReportBuilder({funders}:{funders:Donor[]}) {
   const [selection, setSelection] = useState({ donorId: funders[0].id, start: "2026-01-01", end: demoDate });
   const [packet, setPacket] = useState(() => assemblePacket(funders[0], demoGifts, selection.start, selection.end, feed, demoNow));
   const [error, setError] = useState("");
@@ -32,7 +38,7 @@ export function ReportWorkspace() {
     <div className={styles.controls}>
       <p className={styles.notice}>Fictional demo · No live donor data or verified outcomes are connected. Printing includes this disclosure. Live donor access is not available yet.</p>
       <form onSubmit={prepare} className={styles.form}>
-        <label>Funder<select value={selection.donorId} onChange={(event) => { setSelection({ ...selection, donorId: event.target.value }); setReviewed(false); }}>
+        <label>Funder<select aria-label="Funder" value={selection.donorId} onChange={(event) => { setSelection({ ...selection, donorId: event.target.value }); setReviewed(false); }}>
           {funders.map((funder) => <option key={funder.id} value={funder.id}>{funder.name}</option>)}
         </select></label>
         <label>Reporting start<input type="date" required value={selection.start} onChange={(event) => { setSelection({ ...selection, start: event.target.value }); setReviewed(false); }} /></label>

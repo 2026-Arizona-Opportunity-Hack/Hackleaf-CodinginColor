@@ -12,7 +12,7 @@ export function OverviewWorkspace() {
   const workspace = useAssistantWorkspace();
   const giving = useOptionalGivingWorkspace();
   const donors = workspace?.relationships.donors ?? demoDonors;
-  const gifts = [...new Map([...(workspace?.relationships.gifts ?? demoGifts), ...(giving?.giving.gifts ?? [])].map((gift) => [gift.id, gift])).values()];
+  const gifts = [...new Map([...(workspace?.relationships.gifts ?? demoGifts), ...(giving?.giving.gifts ?? [])].map((gift) => [gift.id, gift])).values()].filter(gift=>donors.some(d=>d.id===gift.donorId));
   const tasks = (workspace?.relationships.tasks ?? demoFollowUps).filter((task) => task.status === "open");
   const communications = workspace?.relationships.communications ?? demoCommunications;
   const donorTotal = (id: string, year: number) => gifts.filter((gift) => gift.donorId === id && gift.receivedOn.startsWith(String(year))).reduce((sum, gift) => sum + gift.amountCents, 0);

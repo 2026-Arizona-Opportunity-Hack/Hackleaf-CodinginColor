@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { ZodError } from "zod";
 import { formatMoney } from "@/lib/domain/rules";
 import { frequencies, nextAvailablePriority, parseRequest, programs, sources, type DonationRequest } from "./requests";
+import { useAssistantWorkspace } from "@/features/assistant/workspace-context";
 import { demoDonors } from "@/lib/demo/data";
 import type { Gift } from "@/lib/domain/types";
 import { type Allocation } from "./allocation";
@@ -80,6 +81,7 @@ export function RequestForm({ request, onSave, onDismiss, requests, fundedCents 
 }
 
 export function RequestDetails({ request, allocations, gifts, onEdit, onDismiss }: { allocations: Allocation[]; gifts: Gift[]; request: DonationRequest; onEdit: () => void; onDismiss: () => void }) {
+  const donors=useAssistantWorkspace()?.relationships.donors??demoDonors;
   const funding = requestFunding(request, allocations);
   const contributionTotals = new Map<string, number>();
   allocations.filter((item) => item.requestId === request.id).forEach((item) => contributionTotals.set(item.giftId, (contributionTotals.get(item.giftId) ?? 0) + item.amountCents));
@@ -92,9 +94,9 @@ export function RequestDetails({ request, allocations, gifts, onEdit, onDismiss 
         <div><dt>Still needed</dt><dd>{formatMoney(funding.remainingCents)} USD</dd></div></dl>
       <h3>Who donated</h3><p className={styles.muted}>Amounts below show each donor’s contribution allocated to this request. All records are fictional.</p>
       {contributions.length ? <ul className={styles.giftList}>{contributions.map((item, index) => <li key={`${item.giftId}-${index}`}>
-        <strong>{demoDonors.find((donor) => donor.id === item.gift.donorId)?.name ?? "Unknown donor"}</strong>
-        <span>{formatMoney(item.amountCents)} allocated</span><small>{item.gift.receivedOn} · {sources.find((source) => source.value === item.gift.source)?.label}</small>
-        {item.amountCents !== item.gift.amountCents && <small>Part of a {formatMoney(item.gift.amountCents)} donation</small>}
+        <strong>{donors.find((donor) => donor.id === item.gift.donorId)?.name ?? "Restricted donor"}</strong>
+        <span>{formatMoney(item.amountCents)} allocated</span>{donors.some(d=>d.id===item.gift.donorId)&&<small>{item.gift.receivedOn} · {sources.find((source) => source.value === item.gift.source)?.label}</small>}
+        {donors.some(d=>d.id===item.gift.donorId) && item.amountCents !== item.gift.amountCents && <small>Part of a {formatMoney(item.gift.amountCents)} donation</small>}
       </li>)}</ul> : <p>No donations received for this request yet.</p>}
 
     </div><footer className={styles.formFooter}><button className={styles.primary} onClick={onEdit}>Edit request</button></footer>

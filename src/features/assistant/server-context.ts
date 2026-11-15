@@ -6,6 +6,9 @@ import { donorSchema, giftSchema, taskSchema, communicationSchema, draftSchema, 
 import type { Actor } from "./policy";
 import { sessionFor } from "./security";
 import type { BoardMember, OutcomeEvidence } from "@/lib/domain/types";
+import { getDemoUser } from "@/features/demo-auth/session";
+import { demoOwnerScope } from "@/features/donors/demo-access";
+import { scopeRelationships } from "@/features/donors/relationship-scope";
 
 export class AssistantFailure extends Error { constructor(message: string, public status = 400) { super(message); } }
 type Database = Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -24,8 +27,11 @@ export async function createContext(request: Request, path: string, snapshot: De
   let db: Database | null = null;
   let actor: Actor;
   if (isDemoWorkspace()) {
+    const user=await getDemoUser();
+    if(!user)throw new AssistantFailure("Sign in before using the assistant.",401);
+    if(snapshot)snapshot={...snapshot,relationships:scopeRelationships(snapshot.relationships,demoOwnerScope(user))};
     if (process.env.NODE_ENV === "production" && process.env.AI_DEMO_ENABLED !== "true") throw new AssistantFailure("The public demo assistant is disabled. Enable AI_DEMO_ENABLED deliberately to allow paid demo requests.", 503);
-    actor = { id: `demo:${session}:staff:staff`, sessionId: session, audience, mode: "demo", role: "admin", today: demoDate };
+    actor = { id: `demo:${session}:staff:${user.id}`, sessionId: session, audience, mode: "demo", role: user.role==='admin'?'admin':'board_member', today: demoDate };
   } else {
     try { db = await createSupabaseServerClient(); } catch { throw new AssistantFailure("Live authentication is not configured.", 503); }
     const { data: { user }, error } = await db.auth.getUser();
@@ -45,8 +51,10 @@ async function loadData(actor: Actor, snapshot: DemoSnapshot | null, db: Databas
     return { ...snapshot.relationships, members: demoMembers, evidence: [], partial: false };
   }
   if (!db) throw new AssistantFailure("Live data is not configured.", 503);
+  let donorQuery=db.from("donors").select("id,name,kind,email,owner_id").order("id").limit(2001);
+  if(actor.role!=="admin")donorQuery=donorQuery.eq('owner_id',actor.id);
   const [donors, gifts, tasks, communications, drafts, members, evidence] = await Promise.all([
-    db.from("donors").select("id,name,kind,email,owner_id").order("id").limit(2001),
+    donorQuery,
     db.from("gifts").select("id,donor_id,amount_cents,currency,received_on,program_id,source,source_record_id").order("id").limit(5001),
     db.from("follow_ups").select("id,donor_id,owner_id,title,due_on,status,kind").order("id").limit(2001),
     db.from("communications").select("id,donor_id,actor_id,channel,summary,occurred_at,origin").order("occurred_at", { ascending: false }).limit(2001),
@@ -56,12 +64,13 @@ async function loadData(actor: Actor, snapshot: DemoSnapshot | null, db: Databas
   ]);
   if ([donors, gifts, tasks, communications, drafts, members, evidence].some((r) => r.error)) throw new AssistantFailure("Workspace data could not be loaded. Check your access and database migrations.", 503);
   const ds = (donors.data ?? []).map((d) => donorSchema.parse({ id: d.id, name: d.name, kind: d.kind, email: d.email, ownerId: d.owner_id, sources: [] }));
+  const ids=new Set(ds.map(d=>d.id)),visible=(id:string)=>actor.role==='admin'||ids.has(id);
   return {
     donors: ds,
-    gifts: (gifts.data ?? []).map((g) => giftSchema.parse({ id: g.id, donorId: g.donor_id, amountCents: Number(g.amount_cents), currency: g.currency, receivedOn: g.received_on, programId: g.program_id, source: g.source, sourceRecordId: g.source_record_id })),
-    tasks: (tasks.data ?? []).map((t) => taskSchema.parse({ id: t.id, donorId: t.donor_id, ownerId: t.owner_id, title: t.title, dueOn: t.due_on, status: t.status, kind: t.kind })),
-    communications: (communications.data ?? []).map((c) => communicationSchema.parse({ id: c.id, donorId: c.donor_id, actorId: c.actor_id, channel: c.channel, summary: c.summary, occurredAt: c.occurred_at, origin: c.origin })),
-    drafts: (drafts.data ?? []).map((d) => draftSchema.parse({ id: d.id, donorId: d.donor_id, channel: d.channel, subject: d.subject, body: d.body, state: d.state, approvedBy: d.approved_by, approvedAt: d.approved_at, sentAt: d.sent_at })),
+    gifts: (gifts.data ?? []).filter(g=>visible(g.donor_id)).map((g) => giftSchema.parse({ id: g.id, donorId: g.donor_id, amountCents: Number(g.amount_cents), currency: g.currency, receivedOn: g.received_on, programId: g.program_id, source: g.source, sourceRecordId: g.source_record_id })),
+    tasks: (tasks.data ?? []).filter(t=>visible(t.donor_id)).map((t) => taskSchema.parse({ id: t.id, donorId: t.donor_id, ownerId: t.owner_id, title: t.title, dueOn: t.due_on, status: t.status, kind: t.kind })),
+    communications: (communications.data ?? []).filter(c=>visible(c.donor_id)).map((c) => communicationSchema.parse({ id: c.id, donorId: c.donor_id, actorId: c.actor_id, channel: c.channel, summary: c.summary, occurredAt: c.occurred_at, origin: c.origin })),
+    drafts: (drafts.data ?? []).filter(d=>visible(d.donor_id)).map((d) => draftSchema.parse({ id: d.id, donorId: d.donor_id, channel: d.channel, subject: d.subject, body: d.body, state: d.state, approvedBy: d.approved_by, approvedAt: d.approved_at, sentAt: d.sent_at })),
     members: (members.data ?? []).filter((m) => m.role === "board_member").map((m) => ({ id: m.id, name: m.display_name, active: m.active, lastAssignedAt: m.last_assigned_at, assignedCount: ds.filter((d) => d.ownerId === m.id).length })),
     evidence: (evidence.data ?? []).map((e) => ({ id: e.id, programId: e.program_id, periodStart: e.period_start, periodEnd: e.period_end, metric: e.metric, value: Number(e.value), unit: e.unit, sourceUrl: e.source_url, verifiedAt: e.verified_at, attributionNote: e.attribution_note })),
     partial: (donors.data?.length ?? 0) > 2000 || (gifts.data?.length ?? 0) > 5000 || (tasks.data?.length ?? 0) > 2000 || (communications.data?.length ?? 0) > 2000 || (drafts.data?.length ?? 0) > 1000 || (evidence.data?.length ?? 0) > 500,
