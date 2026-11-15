@@ -40,6 +40,8 @@ export function parseAction(name: string, input: unknown): Action {
 }
 
 export const readSchemas = {
+  service_overview: z.object({ period: z.enum(["today","month","year","all"]) }).strict(),
+  search_clients: z.object({ query: z.string().max(100), limit: z.number().int().min(1).max(25) }).strict(),
   workspace_overview: z.object({ start: date.nullable(), end: date.nullable() }).strict(),
   search_donors: z.object({ query: z.string().max(100), retention: z.enum(["all", "new", "increased", "decreased", "unchanged", "lapsed", "inactive"]), limit: z.number().int().min(1).max(25) }).strict(),
   get_donor: z.object({ donorId: id }).strict(),

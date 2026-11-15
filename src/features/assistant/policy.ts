@@ -15,7 +15,7 @@ export function canUse(actor: Actor, name: string): boolean {
   if (adminActions.includes(name as ActionName)) return actor.role === "admin" && (actor.mode === "demo" || !["create_request", "update_request"].includes(name));
   if (name === "update_my_profile" || name === "my_donor_profile") return false;
   if (name === "board_workload" || name === "preview_import") return actor.role === "admin";
-  return ["workspace_overview", "search_donors", "get_donor", "list_follow_ups", "list_requests", "prepare_funder_packet", "navigate", "platform_help", "export_data"].includes(name);
+  return ["service_overview", "search_clients", "workspace_overview", "search_donors", "get_donor", "list_follow_ups", "list_requests", "prepare_funder_packet", "navigate", "platform_help", "export_data"].includes(name);
 }
 
 export function assertCanUse(actor: Actor, name: string) {

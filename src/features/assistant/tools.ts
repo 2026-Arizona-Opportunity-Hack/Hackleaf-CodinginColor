@@ -14,6 +14,7 @@ import { actionTitles, knowledge, toolDescriptions } from "./knowledge";
 import { signProposal } from "./security";
 import type { AssistantData, ToolContext } from "./server-context";
 import { modelSchema } from "./model-schema";
+import { fundingSnapshot, liveFunding } from "@/features/donation-requests/live-contract";
 
 export function availableTools(context: ToolContext): FunctionTool[] {
   return Object.entries({ ...readSchemas, ...actionSchemas }).filter(([name]) => canUse(context.actor, name)).map(([name, schema]) => {
@@ -104,6 +105,16 @@ export async function runTool(context: ToolContext, name: string, raw: unknown, 
   const args = readSchemas[name as ReadName].parse(raw);
   const input = args as Record<string, unknown>;
   const today = context.actor.today;
+  if(name==="service_overview"||name==="search_clients"){
+    const {readDemoData}=await import("@/features/case-management/store");
+    const saved=await readDemoData();
+    if(name==="service_overview"){
+      const {summaryFacts}=await import("@/features/case-management/dashboard-summary");
+      return {source:"Saved client/service records",...summaryFacts(saved,input.period as "today"|"month"|"year"|"all",today),note:"Records labeled Sample are fictional. Service counts describe recorded activity, not verified learning outcomes."};
+    }
+    const query=String(input.query).trim().toLowerCase(),matches=saved.clients.filter(client=>client.name.toLowerCase().includes(query));
+    return {clients:matches.slice(0,Number(input.limit)).map(client=>({id:client.id,name:client.name,active:client.active,serviceEntries:saved.visits.filter(visit=>visit.clientId===client.id).length,path:`/clients/${client.id}`})),totalMatches:matches.length,note:"Contact details and private notes are omitted. Records labeled Sample are fictional."};
+  }
   if (name === "platform_help") return { topic: input.topic, documentation: knowledge[input.topic as keyof typeof knowledge] };
   if (name === "navigate") {
     const path = safePath(String(input.path), context.actor.audience);
@@ -111,7 +122,13 @@ export async function runTool(context: ToolContext, name: string, raw: unknown, 
     emit({ type: "navigate", path }); return { opened: path };
   }
   if (name === "list_requests") {
-    if (!context.snapshot) return { status: "unavailable", note: "Live donation-request storage is not connected. No payment is collected here." };
+    if (!context.snapshot) {
+      if(!context.db)throw new Error("The live funding connection is unavailable.");
+      const result=await context.db.rpc("request_funding_snapshot");
+      if(result.error)throw new Error("Saved funding records could not be loaded. Retry or open Donation requests.");
+      const saved=fundingSnapshot.parse(result.data);
+      return {source:"Saved Supabase funding records",requests:saved.requests.map(request=>({...request,...liveFunding(request,saved.allocations)})),unallocatedCents:saved.unallocated_cents,note:"All amounts are USD cents. Records marked Sample are fictional demonstration data. Requests are goals, not payments collected by this app."};
+    }
     const { requests, allocations } = context.snapshot.giving;
     return { fictional: true, requests: requests.map((r) => ({ ...r, ...funding(r, allocations) })), note: "USD cents. These are goals and allocation simulations, not verified received payments." };
   }
