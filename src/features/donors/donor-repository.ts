@@ -86,7 +86,7 @@ export async function fetchLiveDonor(id: string): Promise<LiveDonorDetail | null
       kind: d.kind as LiveDonorRow["kind"],
       email: d.email ?? null,
       ownerId: d.owner_id,
-      ownerName: (members as any)?.display_name ?? "Unknown",
+      ownerName: (members as { display_name: string } | null)?.display_name ?? "Unknown",
       totalCents,
       sources: [...new Set((gifts ?? []).map((g) => g.source as string))],
       gifts: (gifts ?? []).map((g) => ({

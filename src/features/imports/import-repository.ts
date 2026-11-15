@@ -12,8 +12,8 @@ export interface CommitResult {
 
 export async function commitImportBatch(
   gifts: ImportedGift[],
-  _source: GivingSource,
-  _fileName: string,
+  source: GivingSource,
+  fileName: string,
 ): Promise<CommitResult> {
   const supabase = await createSupabaseServerClient();
 
@@ -53,6 +53,12 @@ export async function commitImportBatch(
     await supabase.from("programs")
       .upsert({ id: programId, name: programId }, { onConflict: "id", ignoreDuplicates: true });
   }
+
+  // Record this batch for audit history.
+  await supabase.from("import_batch").insert({
+    source, file_name: fileName, row_kind: "gift",
+    rows_read: gifts.length, created_by: user.id,
+  });
 
   let committed = 0;
   let skipped = 0;
