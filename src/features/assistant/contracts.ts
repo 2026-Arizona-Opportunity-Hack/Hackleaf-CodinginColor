@@ -72,10 +72,10 @@ export type AssistantEvent =
   | { type: "error"; message: string }
   | { type: "done"; inputTokens: number; outputTokens: number };
 
-const staffRoutes = ["/", "/donors", "/imports", "/follow-ups", "/retention", "/reports", "/donation-requests"];
+const staffRoutes = ["/", "/dashboard", "/donors", "/imports", "/follow-ups", "/retention", "/reports", "/donation-requests", "/clients", "/clients/new", "/appointments", "/client-reports", "/client-funder-reports", "/client-intake", "/client-settings", "/client-data", "/client-integrations", "/audit", "/admin/members", "/login", "/auth/sign-in", "/auth/register"];
 export function safePath(path: string, audience: "staff" | "donor"): string | null {
   if(audience!=="staff")return null;
   const routes = staffRoutes;
   if (routes.includes(path)) return path;
-  return audience === "staff" && /^\/donors\/[a-zA-Z0-9-]{1,100}$/.test(path) ? path : null;
+  return audience === "staff" && /^\/(?:donors|clients)\/[a-zA-Z0-9-]{1,100}$/.test(path) ? path : null;
 }
