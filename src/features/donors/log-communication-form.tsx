@@ -7,21 +7,42 @@ type Channel = typeof CHANNELS[number];
 
 interface LoggedEntry { channel: Channel; summary: string; date: string }
 
-export function LogCommunicationForm({ donorName }: { donorName: string }) {
+const isLiveMode = !!(typeof process !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_URL);
+
+export function LogCommunicationForm({ donorId, donorName }: { donorId: string; donorName: string }) {
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<Channel>("email");
   const [summary, setSummary] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [entries, setEntries] = useState<LoggedEntry[]>([]);
-  const [saved, setSaved] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!summary.trim()) return;
+    setSaving(true);
+    setStatus(null);
+
+    if (isLiveMode) {
+      const res = await fetch(`/api/donors/${donorId}/communications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel, summary: summary.trim(), occurredAt: `${date}T12:00:00` }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setStatus(`Error: ${data.error ?? "Could not save."}`);
+        setSaving(false);
+        return;
+      }
+    }
+
     setEntries([{ channel, summary: summary.trim(), date }, ...entries]);
-    setSaved(`${channel} logged for ${donorName} on ${date}.`);
+    setStatus(`${channel} logged for ${donorName} on ${date}.`);
     setSummary("");
     setOpen(false);
+    setSaving(false);
   }
 
   return (
@@ -40,7 +61,7 @@ export function LogCommunicationForm({ donorName }: { donorName: string }) {
         </ul>
       )}
 
-      {saved && <p role="status" aria-live="polite">{saved}</p>}
+      {status && <p role="status" aria-live="polite">{status}</p>}
 
       {open ? (
         <form className="filters" onSubmit={submit} aria-label="Log outreach">
@@ -65,7 +86,7 @@ export function LogCommunicationForm({ donorName }: { donorName: string }) {
               onChange={(e) => setSummary(e.target.value)}
             />
           </label>
-          <button type="submit">Save</button>
+          <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
           <button type="button" onClick={() => setOpen(false)}>Cancel</button>
         </form>
       ) : (
@@ -74,7 +95,9 @@ export function LogCommunicationForm({ donorName }: { donorName: string }) {
         </button>
       )}
 
-      <p><small>Demo mode: entries are saved in this browser session only. Live persistence requires the authenticated communication API.</small></p>
+      {!isLiveMode && (
+        <p><small>Demo mode: entries are saved in this browser session only.</small></p>
+      )}
     </section>
   );
 }
