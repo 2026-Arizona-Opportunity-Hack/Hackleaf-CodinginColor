@@ -5,7 +5,7 @@ const db = new PGlite();
 const admin="a0000000-0000-4000-8000-000000000001", staff="a0000000-0000-4000-8000-000000000002", outsider="a0000000-0000-4000-8000-000000000003";
 beforeAll(async()=>{
   await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;insert into auth.users values('${admin}'),('${staff}'),('${outsider}');`);
-  for(const name of ["202611140001_foundation.sql","202611150004_live_case_workspace.sql"]) await db.exec(readFileSync(new URL(`../../../supabase/migrations/${name}`,import.meta.url),"utf8"));
+  for(const name of ["202611140001_foundation.sql","202611140003_request_funding.sql","202611140004_request_access.sql","202611150004_live_case_workspace.sql"]) await db.exec(readFileSync(new URL(`../../../supabase/migrations/${name}`,import.meta.url),"utf8"));
   await db.exec(`insert into public.members(id,display_name,role) values('${admin}','Admin','admin'),('${staff}','Staff','board_member');`);
 },60000);
 afterAll(()=>db.close());
@@ -20,3 +20,8 @@ it("persists staff-created records, rejects stale writes and protects configurat
 });
 it("protects existing client records from staff changes and allows admin changes",async()=>{const {data,revision}=await state();const next=structuredClone(data);next.clients[0]={...next.clients[0],name:"Edited"};await expect(save(staff,next,revision)).rejects.toThrow(/admin/);await save(admin,next,revision);expect((await state()).data.clients[0]).toMatchObject({name:"Edited"});});
 it("normalizes audit attribution and rejects document impersonation",async()=>{const {data,revision}=await state();const next=structuredClone(data);next.audit.push({id:crypto.randomUUID(),actorId:admin,actorName:"Forged",at:"2000-01-01",action:"client.create"});await save(staff,next,revision);expect((await state()).data.audit[0]).toMatchObject({actorId:staff,actorName:"Staff"});const current=await state();current.data.documents.push({id:crypto.randomUUID(),clientId:(current.data.clients[0] as {id:string}).id,createdBy:admin});await expect(save(staff,current.data,current.revision)).rejects.toThrow(/author/);});
+it("adds labeled samples once without replacing existing client records",async()=>{
+ const sql=readFileSync(new URL("../../../supabase/seeds/labeled_samples.sql",import.meta.url),"utf8");
+ await db.exec(sql);const seeded=await state();expect(seeded.data.clients).toHaveLength(13);expect(seeded.data.visits).toHaveLength(36);expect(seeded.data.appointments).toHaveLength(8);expect(seeded.data.clients[0]).toMatchObject({name:"Edited"});expect((await db.query("select * from public.donors where name like 'Sample %'")).rows).toHaveLength(6);
+ await db.exec(sql);expect((await state()).data.clients).toHaveLength(13);expect((await state()).data.visits).toHaveLength(36);
+});
