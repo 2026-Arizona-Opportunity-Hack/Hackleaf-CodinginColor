@@ -44,6 +44,60 @@ async function send(page: Page, text: string) {
   await expect(page.getByRole("button", { name: "Stop assistant response" })).toBeHidden({ timeout: 15000 });
 }
 
+test("extension-added body attributes hydrate without an error overlay", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  // Simulate the exact external mutation from the reported hydration diff,
+  // before any application JavaScript runs.
+  await page.addInitScript(() => {
+    const observer = new MutationObserver(() => {
+      if (!document.body) return;
+      document.body.setAttribute("__processed_637e92d4-3bc6-4f9d-9e20-aee6f51a194c__", "true");
+      observer.disconnect();
+    });
+    observer.observe(document, { childList: true, subtree: true });
+  });
+  await setup(page);
+  await expect(page).toHaveTitle("Hackleaf · Coding in Color");
+  await expect(page.locator("body")).toHaveAttribute("__processed_637e92d4-3bc6-4f9d-9e20-aee6f51a194c__", "true");
+  await expect(page.getByRole("heading", { name: "What can we move forward?" })).toBeVisible();
+  await page.screenshot({ path: "/tmp/hackleaf-assistant-hydration-fixed.png" });
+  expect(errors).toEqual([]);
+});
+
+test("navigation ignores a late connection check and keeps the current chat usable", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  await setup(page);
+  let release!: () => void;
+  const delayed = new Promise<void>((resolve) => { release = resolve; });
+  await page.unroute("**/api/assistant/status?*");
+  await page.route("**/api/assistant/status?*", async (route) => {
+    const path = new URL(route.request().url()).searchParams.get("path");
+    if (path === "/follow-ups") {
+      await delayed;
+      await route.fulfill({ json: { ready: false, message: "Obsolete connection result" } });
+    } else await route.fulfill({ json: { ready: true, message: "Current connection ready" } });
+  });
+  const pendingCheck = page.waitForRequest((request) => new URL(request.url()).searchParams.get("path") === "/follow-ups");
+  await page.getByRole("navigation").getByRole("link", { name: "Follow-ups", exact: true }).click();
+  await pendingCheck;
+  const currentCheck = page.waitForResponse((response) => new URL(response.url()).searchParams.get("path") === "/donors");
+  await page.getByRole("navigation").getByRole("link", { name: "Donors", exact: true }).click();
+  await currentCheck;
+  const obsoleteCheck = page.waitForResponse((response) => new URL(response.url()).searchParams.get("path") === "/follow-ups");
+  release();
+  await obsoleteCheck;
+  // A fresh assistant turn after the old response arrives proves readiness
+  // still belongs to the current route and that the chat remains interactive.
+  await send(page, "Find lapsed donors");
+  await expect(page.getByRole("dialog").getByText("Alex Rivera", { exact: true })).toBeVisible();
+  await expect(page.getByText("Obsolete connection result")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test("review/apply, signed token security, navigation state and actual packet download", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });

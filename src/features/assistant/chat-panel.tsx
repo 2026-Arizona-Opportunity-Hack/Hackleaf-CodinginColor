@@ -39,10 +39,14 @@ export function ChatPanel({ demo, open, onClose }: { demo: boolean; open: boolea
   const applying = messages.some((m) => m.proposals.some((p) => p.state === "applying"));
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetch(`/api/assistant/status?path=${encodeURIComponent(pathname)}`, { signal: controller.signal, cache: "no-store" })
-      .then((r) => r.json()).then(setStatus).catch((e) => { if (e.name !== "AbortError") setStatus({ ready: false, message: "Couldn’t connect to the assistant. Close and reopen to retry." }); });
-    return () => controller.abort();
+    // This small read can finish after cleanup. Ignore obsolete results rather
+    // than aborting fetch during Strict Mode's setup/cleanup/setup cycle.
+    let active = true;
+    fetch(`/api/assistant/status?path=${encodeURIComponent(pathname)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((result: Status) => { if (active) setStatus(result); })
+      .catch(() => { if (active) setStatus({ ready: false, message: "Couldn’t connect to the assistant. Close and reopen to retry." }); });
+    return () => { active = false; };
   }, [pathname]);
   useEffect(() => { if (open) textarea.current?.focus(); }, [open]);
   useEffect(() => { if (scroller.current && messages.length) scroller.current.scrollTop = scroller.current.scrollHeight; }, [messages, busy, progress]);
