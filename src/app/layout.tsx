@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Navigation } from "@/components/navigation";
 import { isDemoWorkspace } from "@/lib/workspace";
 import { DemoWorkspaceProvider } from "@/features/donor-portal/demo-workspace";
+import { AssistantWorkspaceProvider } from "@/features/assistant/workspace-context";
+import { ChatWidget } from "@/features/assistant/chat-widget";
 import "./globals.css";
 
 // Mode is checked per request, including when environment changes after a build.
@@ -23,5 +25,5 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {demo ? <time dateTime="2026-11-14">November 14, 2026</time> : null}</div>
         {demo ? children : <section className="setup-state"><h1>Connect your live workspace.</h1><p>Live sign-in and data access are not connected in this foundation. No donor records are loaded.</p><p>Follow the deployment guide to complete authentication and validate access policies before enabling live use.</p></section>}
       </main></div>;
-  return <html lang="en"><body><a className="skip-link" href="#main">Skip to content</a>{demo ? <DemoWorkspaceProvider>{shell}</DemoWorkspaceProvider> : shell}</body></html>;
+  return <html lang="en"><body><a className="skip-link" href="#main">Skip to content</a>{demo ? <AssistantWorkspaceProvider><DemoWorkspaceProvider>{shell}<ChatWidget demo /></DemoWorkspaceProvider></AssistantWorkspaceProvider> : <>{shell}<ChatWidget demo={false} /></>}</body></html>;
 }

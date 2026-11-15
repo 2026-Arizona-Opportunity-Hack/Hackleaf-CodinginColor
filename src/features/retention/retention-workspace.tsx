@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FoundationNotice, PageHeading } from "@/components/page-heading";
-import { demoDonors, donorGiving } from "@/lib/demo/data";
+import { demoDate, demoDonors, donorGiving } from "@/lib/demo/data";
 import { classifyRetention, formatMoney } from "@/lib/domain/rules";
 
-const CURRENT_YEAR = new Date().getFullYear();
+// The fictional workspace stays on its fixture date on both server and client.
+const CURRENT_YEAR = Number(demoDate.slice(0, 4));
 
 export function RetentionWorkspace() {
   const [prevYear, setPrevYear] = useState(CURRENT_YEAR - 1);

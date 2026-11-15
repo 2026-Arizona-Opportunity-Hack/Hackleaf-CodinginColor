@@ -4,10 +4,7 @@ import { useState } from "react";
 import { demoCommunications, demoDate, demoDonors, demoMembers } from "@/lib/demo/data";
 import { approveDraft, contactProblem, editDraft, hasQuarterlyTouch, logExternal, newDraft, quarterWindow, type ContactPolicy, type DemoDraft, type ExternalLog } from "./outreach";
 import styles from "./workspace.module.css";
-
-// Deliberately fictional permission scenarios; never infer consent from a gift.
-const contacts = demoDonors.map((donor, index) => ({ donor: index === 3 ? { ...donor, email: null } : donor,
-  policy: (index === 2 ? "opted_out" : index === 4 ? "unknown" : "allowed") as ContactPolicy }));
+import { useAssistantWorkspace } from "@/features/assistant/workspace-context";
 
 function download(draft: DemoDraft) {
   const blob = new Blob([`FICTIONAL DEMO — reviewed copy, not sent\nTo: ${draft.recipient}\nChannel: email\nSubject: ${draft.subject}\n\n${draft.body}`], { type: "text/plain;charset=utf-8" });
@@ -18,8 +15,14 @@ function download(draft: DemoDraft) {
 }
 
 export function OutreachWorkspace() {
+  const workspace = useAssistantWorkspace();
+  const communications = workspace?.relationships.communications ?? demoCommunications;
+  // Deliberately fictional permission scenarios; never infer consent from a gift.
+  const contacts = (workspace?.relationships.donors ?? demoDonors).map((donor, index) => ({ donor: index === 3 ? { ...donor, email: null } : donor,
+    policy: (index === 2 ? "opted_out" : index === 4 ? "unknown" : "allowed") as ContactPolicy }));
   const [selected, setSelected] = useState(demoDonors[0].id);
-  const [drafts, setDrafts] = useState<DemoDraft[]>([]);
+  const [localDrafts, setLocalDrafts] = useState<DemoDraft[]>([]);
+  const drafts: DemoDraft[] = workspace ? workspace.relationships.drafts.map((draft) => ({ ...draft, recipient: (workspace.relationships.donors.find((d) => d.id === draft.donorId)?.email ?? ""), purpose: draft.subject?.toLowerCase().includes("thank") ? "thank_you" : "quarterly" })) : localDrafts;
   const [logs, setLogs] = useState<ExternalLog[]>([]);
   const [purpose, setPurpose] = useState<DemoDraft["purpose"]>("quarterly");
   const [reviewed, setReviewed] = useState(false);
@@ -33,16 +36,22 @@ export function OutreachWorkspace() {
   const logged = logs.some((item) => item.draftId === draft?.id && item.result === "manual_log");
   const problem = contactProblem(contact.donor, contact.policy);
   const quarter = quarterWindow(demoDate);
-  function update(next: DemoDraft) { setDrafts((current) => current.some((item) => item.id === next.id) ? current.map((item) => item.id === next.id ? next : item) : [...current, next]); }
+  function update(next: DemoDraft) {
+    if (workspace) {
+      const { recipient: _recipient, purpose: _purpose, ...base } = next;
+      void _recipient; void _purpose;
+      workspace.setRelationships((current) => ({ ...current, drafts: current.drafts.some((item) => item.id === base.id) ? current.drafts.map((item) => item.id === base.id ? base : item) : [...current.drafts, base] }));
+    } else setLocalDrafts((current) => current.some((item) => item.id === next.id) ? current.map((item) => item.id === next.id ? next : item) : [...current, next]);
+  }
   function act(action: () => void) { try { action(); setError(""); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to update demo outreach."); } }
-  const covered = contacts.filter(({ donor }) => hasQuarterlyTouch(donor.id, demoDate, demoCommunications, logs)).length;
+  const covered = contacts.filter(({ donor }) => hasQuarterlyTouch(donor.id, demoDate, communications, logs)).length;
 
   return <section className={styles.stack} aria-label="Quarterly outreach">
     <h2>Quarterly outreach and review</h2>
     <p>Quarter: {quarter.start}–{quarter.end} · {covered} of {contacts.length} donors have a recorded touch through {demoDate}.</p>
     <p className={styles.notice}>Fictional demo · Permission scenarios are invented for testing. Provisional coverage counts dated communication records and successful manual logs; CIC must confirm its touch policy. Gifts, tasks, drafts, downloads and failed attempts do not count. No delivery provider is connected.</p>
     <details><summary>View donor coverage and contact restrictions</summary><ul>{contacts.map(({ donor, policy }) => <li className={styles.card} key={donor.id}>
-      <strong>{donor.name}</strong><span>{hasQuarterlyTouch(donor.id, demoDate, demoCommunications, logs) ? "Recorded touch this quarter" : "Needs quarterly touch"} · {contactProblem(donor, policy) ?? "Fictional email permission supplied"}</span>
+      <strong>{donor.name}</strong><span>{hasQuarterlyTouch(donor.id, demoDate, communications, logs) ? "Recorded touch this quarter" : "Needs quarterly touch"} · {contactProblem(donor, policy) ?? "Fictional email permission supplied"}</span>
     </li>)}</ul></details>
     <div className={styles.form}>
       <label>Outreach donor<select value={selected} onChange={(event) => { setSelected(event.target.value); setReviewed(false); setConfirmed(false); setError(""); setMessage(""); }}>
@@ -72,7 +81,7 @@ export function OutreachWorkspace() {
       {error && <p role="alert" className={styles.error}>{error}</p>}<p role="status">{message}</p>
     </div>
     <section><h3>Outreach history</h3><ul>
-      {demoCommunications.map((item) => <li className={styles.card} key={item.id}>{item.summary} · Manually logged · {item.occurredAt} · {item.channel}</li>)}
+      {communications.map((item) => <li className={styles.card} key={item.id}>{item.summary} · Manually logged · {item.occurredAt} · {item.channel}</li>)}
       {drafts.map((item) => <li className={styles.card} key={item.id}>{demoDonors.find((donor) => donor.id === item.donorId)?.name} · {item.state === "approved" ? `Version approved ${item.approvedAt}; not proof of delivery` : "Draft; not sent"} · {item.channel} · {item.recipient}</li>)}
       {logs.map((item) => <li className={styles.card} key={item.id}>{demoDonors.find((donor) => donor.id === item.donorId)?.name} · {item.occurredOn} · {item.result === "failed" ? "Failed external attempt; no completed touch" : "Manually logged external outreach; no provider confirmation"}</li>)}
     </ul></section>
