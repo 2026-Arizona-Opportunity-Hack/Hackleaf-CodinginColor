@@ -1065,3 +1065,62 @@ session redirects preserving cookie updates. After integration, lint/typecheck a
 traces). P0 isolated browser regression passes. Added fictional dashboard summary
 and full dashboard screenshots for PR review. GitHub CLI was installed but has no
 authenticated account; a browser device sign-in is required to create the PR.
+
+## Dashboard email updates — 2026-11-15
+
+Started `feat/aditya-dashboard-email` from latest fetched main `522fa29` (PR #9
+merged). Added reviewed email composition beside the dashboard's existing brief.
+Today/Month/Year/All-time selection provides the draft's aggregate summary and
+reporting dates. Staff can edit recipients (up to five), subject and message;
+every edit invalidates review. Period changes preserve edits and offer an explicit
+replacement with the newest brief. Long email links use the downloadable UTF-8
+MIME `.eml` alternative. Header validation/encoding prevents injected headers.
+
+SQL remains disabled. No email provider, credentials, delivery receipts or send
+history were added. Opening mailto requests an external email app; exporting a
+draft sends nothing. The person reviews and sends in their email app. No real
+emails were sent during development. Default content excludes client identities,
+contact information, private notes and the separate funding simulation.
+
+Implementation lives in `src/features/reports/dashboard-email*`; the only
+integration change imports/renders the composer in the existing dashboard brief.
+Browser harness: `node src/features/reports/dashboard-email.browser.mjs` after a
+Node 22 production build. It uses isolated fictional data and checks Staff access,
+period selection, edit-after-review, valid mailto content, MIME download, preserved
+edits on period changes, long-message fallback, mobile overflow and page errors.
+
+Validation: `npm run check` passes lint/typecheck and 170 tests in 29 files.
+`npm run build` and private build guard pass (49 traces). The isolated email
+browser harness passes; no provider requests or real messages were sent.
+
+## Automatic Resend staff alerts — 2026-11-15
+
+User explicitly requested automatic real emails on important activity, overriding
+the earlier manual-only workflow for this staff notification feature. Added
+`staff-email.ts` (Resend server adapter, persistent outbox contract, aggregate
+event templates and retry policy), status UI, and a secret-protected scheduler
+retry endpoint under `/api/reports/staff-email-retry`. Client registration/import/
+inbound integration, service creation and appointment create/update/cancel/complete
+trigger alerts from new audit events. Store integration commits the event/outbox
+before sending, serializes writes, and preserves record saves on provider failure.
+No existing/historical events, seeds, names or notes are sent. Staff recipients
+are explicitly configured server-side and scoped to one organization.
+
+Provider acceptance is distinct from delivery. Temporary failures use backoff and
+the same provider idempotency key; five attempts/23-hour limit, permanent errors
+and removed recipients stop retries. Next saved activity or an owner-configured
+schedule retries pending messages. Added local `.env.local` setting names with
+blank sender/recipients/key and delivery disabled; no actual addresses/key were
+provided. Resend domain verification, actual credentials, staff addresses and
+scheduler provisioning remain owner setup. See `docs/staff-email.md` for exact
+configuration, supported triggers and single-instance persistence limitations.
+No SQL change, provider account creation, paid service or real email was used.
+
+Validation: lint/typecheck and 176 tests in 30 files pass. Tests cover missing/
+disabled setup, organization isolation, audit filtering, private content exclusion,
+queue deduplication, commit-before-provider ordering, failed writes, provider
+acceptance, backoff/idempotent retries, permanent failures, removed recipients,
+retry expiry and scheduler auth. Resend is mocked in all tests.
+Production build/private trace guard pass (50 traces); isolated Staff browser
+flow passes including the explicit automatic-email off/setup state. Local app
+restarted on port 3102. Real delivery remains disabled pending owner configuration.

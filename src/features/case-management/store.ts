@@ -7,6 +7,7 @@ import { randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } fr
 import { promisify } from "node:util";
 import { upgradeDemoData } from "./upgrade";
 import { DEMO_ACCOUNTS, today, type DemoData } from "./model";
+import { queueStaffEmail,deliverStaffEmail } from "@/features/reports/staff-email";
 const scrypt=promisify(scryptCallback);
 export async function passwordHash(password:string,salt:string) { return (await scrypt(password,salt,64) as Buffer).toString("hex"); }
 export async function verifyPassword(password:string,user:{salt:string;passwordHash:string}) {
@@ -45,7 +46,7 @@ export async function readDemoData(organization?:string):Promise<DemoData> {
 // A filesystem lock plus atomic rename keeps this single-instance demo's writes
 // consistent across concurrent requests. This is not a production database.
 export async function mutateDemoData<T>(operation:(data:DemoData)=>T|Promise<T>,organization?:string):Promise<T> {
-  const dir=await demoDirectory(organization);await mkdir(dir,{recursive:true,mode:0o700});
+  const org=organization??await currentTenant(),dir=await demoDirectory(org);await mkdir(dir,{recursive:true,mode:0o700});
   const lock=join(dir,"write.lock");let locked=false;
   for(let i=0;i<250;i++){try{await mkdir(lock,{mode:0o700});locked=true;break;}catch(error){if((error as NodeJS.ErrnoException).code!=="EEXIST")throw error;await new Promise(resolve=>setTimeout(resolve,20));}}
   if(!locked)throw new Error("The demo is busy. Retry shortly.");
@@ -53,9 +54,17 @@ export async function mutateDemoData<T>(operation:(data:DemoData)=>T|Promise<T>,
   try {
     let data:DemoData;
     try{data=await load(dir,true);}catch(error){if((error as NodeJS.ErrnoException).code!=="ENOENT")throw error;data=await seed();}
+    const previous=new Set(data.audit.map(event=>event.id));
     const result=await operation(data);
+    queueStaffEmail(data,previous,org);
     temporary=join(dir,`.workspace-${randomUUID()}.tmp`);
     await writeFile(temporary,JSON.stringify(data),{mode:0o600});await rename(temporary,join(dir,"workspace.json"));
+    // Record success must survive provider failures. The outbox already exists
+    // on disk before any email leaves; retries reuse the same provider key.
+    try { if(await deliverStaffEmail(data,org)) {
+      temporary=join(dir,`.workspace-${randomUUID()}.tmp`);
+      await writeFile(temporary,JSON.stringify(data),{mode:0o600});await rename(temporary,join(dir,"workspace.json"));
+    } } catch { /* Saved outbox can be retried; never log provider secrets. */ }
     return result;
   } finally {if(temporary)await rm(temporary,{force:true});await rm(lock,{recursive:true,force:true});}
 }
