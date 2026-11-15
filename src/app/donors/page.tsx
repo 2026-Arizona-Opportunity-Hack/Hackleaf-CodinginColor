@@ -1,3 +1,4 @@
+import { requireDemoUser } from "@/features/demo-auth/session";
 import Link from "next/link";
 import { getLiveStaff } from "@/lib/supabase/member";
 
@@ -10,10 +11,11 @@ import { NewDonorButton } from "@/features/donors/new-donor-button";
 
 export default async function DonorsPage() {
   if (isDemoWorkspace()) {
+    const user=await requireDemoUser();
     return (
       <>
         <PageHeading title="Every donor belongs here." description="One place for giving history, ownership, and the next conversation." />
-        <DonorDirectory />
+        <p role="status">{user.role==='admin'?'Admin · All fictional donor relationships':'Staff / Board member · Assigned donors only (Morgan Chen demo assignment)'}</p><DonorDirectory />
       </>
     );
   }
@@ -24,6 +26,7 @@ export default async function DonorsPage() {
   return (
     <>
       <PageHeading title="Every donor belongs here." description="One place for giving history, ownership, and the next conversation." />
+      <p role="status">{access.member.role === "admin" ? "Admin · You can view all donor relationships and manage staff access." : "Staff / Board member · You can view only donors assigned to you. Other relationships are private."}</p>
       <NewDonorButton />
       <LiveDonorDirectory initialDonors={donors} />
     </>

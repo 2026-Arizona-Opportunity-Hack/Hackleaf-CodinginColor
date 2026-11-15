@@ -1124,3 +1124,46 @@ retry expiry and scheduler auth. Resend is mocked in all tests.
 Production build/private trace guard pass (50 traces); isolated Staff browser
 flow passes including the explicit automatic-email off/setup state. Local app
 restarted on port 3102. Real delivery remains disabled pending owner configuration.
+
+## Exclusive relationships, chart choices and PDF reports — 2026-11-15
+
+User's changed requirements authorize the cross-feature integration here. Started
+feat/aditya-access-charts-pdf from current main 2c52779. Planned review slices:
+(1) ownership/roles, (2) donor funding charts, (3) PDF/month reporting; authored
+changes exceed 400 lines across the slices. Required shared changes are the
+layout role badge/provider scope, demo donor navigation, member route gate and
+pdf-lib/fontkit dependencies/lockfile. Donor/schema changes implement the user's
+explicit exclusivity requirement; no existing data or memberships are changed.
+
+Added forward migration 202611150003_exclusive_donor_relationships.sql to undo
+main's broad donor SELECT policy. Active admins retain all access; Staff/Board
+members see assigned relationships and may create only self-owned donors. Live
+repository/direct-profile/communication and assistant reads enforce ownership as
+well. Assistant demo role now follows the signed-in account rather than always
+claiming Admin. Demo context, server profile checks and owner filters reflect the
+four fictional Morgan relationships for the seeded Staff account; Admin sees 12.
+Provider state remounts across identities. Live database privacy still requires
+the owner to apply the migration; no management access or hosted SQL writes here.
+
+Added Line/Pie/Bar/Doughnut chooser and exact program-giving tables on donor
+list/profile; directory filters also scope figures. Labels distinguish recorded
+program designations from actual expenditure and line categories from time series.
+
+Funder report attachment is now an actual generated PDF with an embedded licensed
+Noto Sans font, wrapping, pagination and private/no-store authenticated response.
+Month/year service-report controls expand to calendar boundaries, capped today.
+Added docs/donor-access-and-reporting.md and browser/database/repository/PDF/role
+regressions. Fixed SVG title text composition found by browser hydration checks.
+Font is present in the production API route trace. A downloaded PDF was rendered
+for visual inspection; no actual donor data, AI calls or emails used in tests.
+
+Final validation: npm run check passes lint/typecheck and 191 tests; the optional
+real-gateway test is explicitly skipped (no paid requests). Production build and
+private trace guard pass (52 traces), including the embedded PDF font asset.
+The requirements browser flow passes Admin 12/Staff 4 donor scope, denied foreign
+profile, owner selector visibility, all four chart views, scoped retention/funder
+packet/contribution drawer/donation selector, month controls, real PDF download,
+mobile overflow and zero page errors. Assistant review/apply/token-security and
+packet-download browser regression passes with the authenticated actor identity.
+Restored working demo navigation; donor imports remain Admin-only. Scoped
+retention, funder packets, overview totals and demo contribution identities too.

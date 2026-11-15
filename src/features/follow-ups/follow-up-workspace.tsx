@@ -46,7 +46,7 @@ export function FollowUpWorkspace() {
       <p className={styles.notice}>Fictional demo · Changes reset when you reload or leave this page. No reminders or messages are sent. Dates use the demo’s Phoenix operational day: {demoDate}.</p>
       <form className={styles.form} key={editing?.id ?? "new"} onSubmit={save}>
         <h2>{editing ? "Edit next step" : "Create next step"}</h2>
-        <label>Donor and assigned owner<select name="donorId" defaultValue={editing?.donorId ?? demoDonors[0].id}>
+        <label>Donor and assigned owner<select name="donorId" defaultValue={editing?.donorId ?? donors[0]?.id??""}>
           {donors.map((donor) => <option key={donor.id} value={donor.id}>{donor.name} · {demoMembers.find((member) => member.id === donor.ownerId)?.name}</option>)}
         </select></label>
         <label>Next step<input ref={titleInput} name="title" required maxLength={500} defaultValue={editing?.title} /></label>

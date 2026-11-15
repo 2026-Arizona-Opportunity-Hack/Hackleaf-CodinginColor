@@ -49,7 +49,7 @@ export default async function MembersAdminPage() {
       <h1 style={{ marginTop: "0.5rem" }}>Staff members</h1>
       <p style={{ color: "var(--muted, #6b7280)" }}>
         Manage who can access donor records. New registrants appear here once approved.
-        Board members can read and create records. Admins have full access.
+        Staff / board members see only their assigned donors and can create their own donor records. Admins can access all donors and manage staff permissions.
       </p>
 
       {members && members.length > 0 ? (

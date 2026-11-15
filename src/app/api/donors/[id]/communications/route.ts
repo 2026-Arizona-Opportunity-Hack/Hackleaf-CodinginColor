@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isDemoWorkspace } from "@/lib/workspace";
+import { fetchLiveDonor } from "@/features/donors/donor-repository";
 
 export async function POST(
   request: NextRequest,
@@ -40,6 +41,8 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
+
+  if (!await fetchLiveDonor(donorId)) return NextResponse.json({error:"Donor not found."},{status:404,headers:{"Cache-Control":"no-store"}});
 
   const { data, error } = await supabase.from("communications").insert({
     donor_id: donorId,

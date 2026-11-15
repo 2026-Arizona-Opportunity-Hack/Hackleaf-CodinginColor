@@ -1,15 +1,18 @@
 "use client";
 
+import { useAssistantWorkspace } from "@/features/assistant/workspace-context";
 import { useState } from "react";
 import Link from "next/link";
 import { FoundationNotice, PageHeading } from "@/components/page-heading";
-import { demoDate, demoDonors, donorGiving } from "@/lib/demo/data";
+import { demoDate, demoDonors, demoGifts } from "@/lib/demo/data";
 import { classifyRetention, formatMoney } from "@/lib/domain/rules";
 
 // The fictional workspace stays on its fixture date on both server and client.
 const CURRENT_YEAR = Number(demoDate.slice(0, 4));
 
 export function RetentionWorkspace() {
+  const workspace=useAssistantWorkspace(),donors=workspace?.relationships.donors??demoDonors;
+  const donorGiving=(id:string,year:number)=>(workspace?.relationships.gifts??demoGifts).filter(g=>g.donorId===id&&g.receivedOn.startsWith(String(year))).reduce((sum,g)=>sum+g.amountCents,0);
   const [prevYear, setPrevYear] = useState(CURRENT_YEAR - 1);
   const [currYear, setCurrYear] = useState(CURRENT_YEAR);
 
@@ -69,7 +72,7 @@ export function RetentionWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {demoDonors.map((d) => {
+              {donors.map((d) => {
                 const previous = donorGiving(d.id, prevYear);
                 const current = donorGiving(d.id, currYear);
                 return (

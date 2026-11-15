@@ -1,4 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getLiveStaff } from "@/lib/supabase/member";
+import type { FundingGift } from "./funding-data";
 
 export interface LiveDonorRow {
   id: string;
@@ -9,14 +11,20 @@ export interface LiveDonorRow {
   ownerName: string;
   totalCents: number;
   sources: string[];
+  funding: FundingGift[];
 }
 
 export async function fetchLiveDonors(search?: string, ownerId?: string): Promise<LiveDonorRow[] | null> {
   try {
+    const access = await getLiveStaff();
+    if (access.status !== "authorized") return null;
     const supabase = await createSupabaseServerClient();
 
     let donorQuery = supabase.from("donors").select("id, name, kind, email, owner_id").order("name");
-    if (ownerId) donorQuery = donorQuery.eq("owner_id", ownerId);
+    if (access.member.role !== "admin") {
+      if (ownerId && ownerId !== access.user.id) return [];
+      donorQuery = donorQuery.eq("owner_id", access.user.id);
+    } else if (ownerId) donorQuery = donorQuery.eq("owner_id", ownerId);
     if (search?.trim()) donorQuery = donorQuery.ilike("name", `%${search.trim()}%`);
 
     const { data: donors, error } = await donorQuery;
@@ -28,7 +36,7 @@ export async function fetchLiveDonors(search?: string, ownerId?: string): Promis
 
     const [{ data: members, error: membersError }, { data: gifts, error: giftsError }] = await Promise.all([
       supabase.from("members").select("id, display_name").in("id", ownerIds),
-      supabase.from("gifts").select("donor_id, amount_cents, source").in("donor_id", donorIds),
+      supabase.from("gifts").select("donor_id, amount_cents, source, program_id, received_on").in("donor_id", donorIds),
     ]);
 
     if (membersError || giftsError) return null;
@@ -53,6 +61,7 @@ export async function fetchLiveDonors(search?: string, ownerId?: string): Promis
       ownerName: memberMap[d.owner_id] ?? "Unknown",
       totalCents: giftStats[d.id]?.totalCents ?? 0,
       sources: [...(giftStats[d.id]?.sources ?? [])],
+      funding: (gifts??[]).filter(g=>g.donor_id===d.id).map(g=>({programId:g.program_id,amountCents:g.amount_cents,receivedOn:g.received_on})),
     }));
   } catch {
     return null;
@@ -66,11 +75,14 @@ export interface LiveDonorDetail extends LiveDonorRow {
 
 export async function fetchLiveDonor(id: string): Promise<LiveDonorDetail | null> {
   try {
+    const access = await getLiveStaff();
+    if (access.status !== "authorized") return null;
     const supabase = await createSupabaseServerClient();
-    const { data: d, error } = await supabase.from("donors")
+    let query = supabase.from("donors")
       .select("id, name, kind, email, owner_id")
-      .eq("id", id)
-      .single();
+      .eq("id", id);
+    if (access.member.role !== "admin") query = query.eq("owner_id", access.user.id);
+    const { data: d, error } = await query.single();
     if (error || !d) return null;
 
     const [{ data: members, error: membersError }, { data: gifts, error: giftsError }, { data: comms, error: commsError }] = await Promise.all([
@@ -90,6 +102,7 @@ export async function fetchLiveDonor(id: string): Promise<LiveDonorDetail | null
       ownerId: d.owner_id,
       ownerName: (members as { display_name: string } | null)?.display_name ?? "Unknown",
       totalCents,
+      funding: (gifts??[]).map(g=>({programId:g.program_id,amountCents:g.amount_cents,receivedOn:g.received_on})),
       sources: [...new Set((gifts ?? []).map((g) => g.source as string))],
       gifts: (gifts ?? []).map((g) => ({
         id: g.id, amountCents: g.amount_cents as number,

@@ -20,9 +20,10 @@ async function loginDemoAdmin(page: Page) {
 async function setup(page: Page) {
   await loginDemoAdmin(page);
   const session = newSession();
+  const signedIn = await (await page.request.get("/auth/session")).json();
   await page.context().addCookies([{ name: "hackleaf_ai_session", value: session.cookie.split(";")[0].slice("hackleaf_ai_session=".length), domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Strict" }]);
   const snapshot: DemoSnapshot = { relationships: initialRelationships(), giving: { requests: demoRequests, gifts: demoRequestGifts, allocations: allocateDonations(demoRequests, demoRequestGifts) }, profile: null };
-  const context: ToolContext = { actor: { id: `demo:${session.id}:staff:staff`, sessionId: session.id, mode: "demo", audience: "staff", role: "admin", today: demoDate }, snapshot, db: null, attachment: null,
+  const context: ToolContext = { actor: { id: `demo:${session.id}:staff:${signedIn.accountId}`, sessionId: session.id, mode: "demo", audience: "staff", role: "admin", today: demoDate }, snapshot, db: null, attachment: null,
     data: async () => ({ ...snapshot.relationships, members: demoMembers, evidence: [], partial: false }) };
   const proposals:AssistantEvent[]=[],artifacts:AssistantEvent[]=[];
   await runTool(context, "create_follow_up", { donorId: snapshot.relationships.donors[0].id, title: "Call about the AI Academy update", dueOn: "2026-11-16", kind: "check_in" }, (e) => proposals.push(e));

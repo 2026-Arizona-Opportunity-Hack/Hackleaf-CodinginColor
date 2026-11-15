@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Navigation } from "@/components/navigation";
 import { isDemoWorkspace } from "@/lib/workspace";
 import { GivingWorkspaceProvider } from "@/features/donation-requests/giving-workspace";
+import { demoOwnerScope } from "@/features/donors/demo-access";
 import { getDemoUser } from "@/features/demo-auth/session";
 import type { SessionView } from "@/features/live-workspace/session-view";
 import { getSessionView } from "@/features/live-workspace/session";
@@ -36,8 +37,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const shell = <div className="app-shell"><aside className="sidebar"><Link href={demo ? "/" : "/dashboard"} className="wordmark">Hackleaf<span>{demo?organization?.name:"Coding in Color"}</span></Link>
       <Navigation session={session} /><p className="sidebar-note">Built for relationships.</p></aside>
       <main id="main" tabIndex={-1}>{demo&&<div className="workspace-bar"><Link href="/organizations">Switch organization</Link><InstallApp/></div>}<div className="workspace-bar"><span>{demo ? `${organization?.name} · Fictional records only` : signedIn ? `Signed in · ${session?.name}` : session?.status === "unavailable" ? "Session verification unavailable" : "Live workspace"}</span>
-        {signedIn ? <div style={{display:"flex",alignItems:"center",gap:12}}>{demo && <span>{demoUser?.name} · {demoUser?.role==="admin"?"Admin":"Staff"}</span>}<SignOutButton /></div> : null}</div>
+        {signedIn ? <div style={{display:"flex",alignItems:"center",gap:12}}><span>{session?.role==="admin"?"Admin · All donor relationships":"Staff / Board member · Assigned donors only"}</span><SignOutButton /></div> : null}</div>
         {demo ? children : <LiveWorkspace configured={configured} signedIn={signedIn}>{children}</LiveWorkspace>}
       </main></div>;
-  return <html lang="en"><body><a className="skip-link" href="#main">Skip to content</a>{session && <SessionSync session={session} />}{demo ? <AssistantWorkspaceProvider><GivingWorkspaceProvider>{shell}{demoUser && <ChatWidget demo />}</GivingWorkspaceProvider></AssistantWorkspaceProvider> : <>{shell}<ChatWidget demo={false} /></>}</body></html>;
+  return <html lang="en"><body><a className="skip-link" href="#main">Skip to content</a>{session && <SessionSync session={session} />}{demo ? <AssistantWorkspaceProvider key={demoUser?.id??"guest"} ownerScope={demoOwnerScope(demoUser)}><GivingWorkspaceProvider>{shell}{demoUser && <ChatWidget demo />}</GivingWorkspaceProvider></AssistantWorkspaceProvider> : <>{shell}<ChatWidget demo={false} /></>}</body></html>;
 }

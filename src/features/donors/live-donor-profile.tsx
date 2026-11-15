@@ -6,6 +6,7 @@ import { PageHeading } from "@/components/page-heading";
 import { formatDate, formatMoney } from "@/lib/domain/rules";
 import { fetchLiveDonor } from "./donor-repository";
 import { LogCommunicationForm } from "./log-communication-form";
+import { FundingChart } from "./funding-chart";
 
 export async function LiveDonorProfile({ id }: { id: string }) {
   const access=await getLiveStaff();
@@ -39,6 +40,7 @@ export async function LiveDonorProfile({ id }: { id: string }) {
         <div><dt>Total giving</dt><dd>{formatMoney(donor.totalCents)}</dd></div>
         <div><dt>Giving sources</dt><dd>{donor.sources.join(", ") || "None recorded"}</dd></div>
       </dl>
+      <FundingChart gifts={donor.funding} scope="This donor's recorded gifts"/>
 
       <section className="recent-activity">
         <h2>Relationship timeline</h2>
