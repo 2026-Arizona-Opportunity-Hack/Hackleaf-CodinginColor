@@ -20,8 +20,13 @@ export async function proxy(request: NextRequest) {
     response.headers.set("Cache-Control","private, no-store");return response;
   }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const path=request.nextUrl.pathname;
+  const publicPage=["/login","/auth/sign-in","/auth/register","/auth/callback","/auth/session","/manifest.webmanifest","/sw.js","/offline.html"].includes(path);
+  const protectedPage=!path.startsWith("/api/")&&!publicPage;
+  const redirectToLogin=()=>{const target=new URL("/login",request.url);target.searchParams.set("next",path);const denied=NextResponse.redirect(target);response.cookies.getAll().forEach(cookie=>denied.cookies.set(cookie));denied.headers.set("Cache-Control","private, no-store");return denied;};
   response.headers.set("Cache-Control", "private, no-store");
-  if (!url || !key || !request.cookies.getAll().some((cookie) => cookie.name.startsWith("sb-"))) return response;
+  if (!url || !key) return response;
+  if(!request.cookies.getAll().some(cookie=>cookie.name.startsWith("sb-")))return protectedPage?redirectToLogin():response;
   const supabase = createServerClient(url, key, { cookies: {
     getAll: () => request.cookies.getAll(),
     setAll: (cookies, headers) => {
@@ -33,7 +38,7 @@ export async function proxy(request: NextRequest) {
       cacheHeaders.forEach((value, name) => response.headers.set(name, value));
     },
   } });
-  try { await supabase.auth.getUser(); } catch { /* Protected pages fail closed independently. */ }
+  try { const result=await supabase.auth.getUser();if(!result.error&&!result.data.user&&protectedPage)return redirectToLogin(); } catch { /* Protected pages fail closed independently on transient errors. */ }
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }

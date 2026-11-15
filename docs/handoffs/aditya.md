@@ -1045,3 +1045,23 @@ browser test and the real AI-off unique-priority/donor-sums/overflow/details/mob
 regression both pass. App health is 200 on the final Node 22 production server at
 127.0.0.1:3102. AI remains disabled because the existing key/flag are unconfigured;
 no actual model calls were made and no hosted records were changed.
+
+
+## PR integration with main — 2026-11-15
+
+PR requested after push. Fetched main at 4d068ba and resolved conflicts with its
+new live login/auth callback/donor profile changes. Retained the richer new live
+donor timeline and LogCommunicationForm behind existing active staff/UUID checks.
+Preserved the mode-aware shell, removed portal, safe fixed callback redirect and
+local demo flow. Kept main's /login UI for live mode; demo /login goes to local
+sign-in. Folded its live page auth gate into Next 16 proxy.ts; removed duplicate
+middleware.ts so Next has one proxy/session refresh implementation. API handlers
+retain their own auth, including bearer-key routes, and untrusted mode cookies
+cannot switch server mode. Redirects retain refreshed cookies and no-store.
+
+Added proxy regressions for live login gating/mode-cookie rejection and expired
+session redirects preserving cookie updates. After integration, lint/typecheck and
+166 tests in 28 files pass. Production build/private trace guard passes (49
+traces). P0 isolated browser regression passes. Added fictional dashboard summary
+and full dashboard screenshots for PR review. GitHub CLI was installed but has no
+authenticated account; a browser device sign-in is required to create the PR.

@@ -34,3 +34,10 @@ it("preserves cookies on transient refresh failures and leaves page authorizatio
 });
 
 it("returns 404 for removed donor self-service URLs in both modes",async()=>{for(const mode of ["demo","live"]){vi.stubEnv("APP_DATA_MODE",mode);for(const path of ["/donor-portal","/donor-portal/register","/donor-portal/login","/donor-portal/donate","/donor-portal/history","/donor-portal/profile"]){expect((await proxy(new NextRequest(`http://localhost${path}`))).status).toBe(404);}}});
+it("keeps main's live login gate without accepting a browser mode override",async()=>{
+ const response=await proxy(new NextRequest("http://localhost/donors",{headers:{cookie:"APP_DATA_MODE=demo"}}));expect(response.status).toBe(307);expect(response.headers.get("location")).toBe("http://localhost/login?next=%2Fdonors");expect(mock.create).not.toHaveBeenCalled();
+ const api=await proxy(new NextRequest("http://localhost/api/v1/overview"));expect(api.status).toBe(200);expect(api.headers.get("cache-control")).toContain("no-store");
+});
+it("redirects an expired live page session while retaining refreshed cookies",async()=>{
+ mock.getUser.mockImplementation(async()=>{adapter.setAll([{name:"sb-test-auth-token",value:"",options:{path:"/",maxAge:0}}],{});return {data:{user:null},error:null};});const response=await proxy(new NextRequest("http://localhost/donors",{headers:{cookie:"sb-test-auth-token=expired"}}));expect(response.status).toBe(307);expect(response.cookies.get("sb-test-auth-token")?.maxAge).toBe(0);
+});
