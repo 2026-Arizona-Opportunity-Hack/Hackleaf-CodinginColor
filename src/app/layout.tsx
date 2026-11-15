@@ -25,7 +25,5 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {demo ? <time dateTime="2026-11-14">November 14, 2026</time> : null}</div>
         {demo ? children : <section className="setup-state"><h1>Connect your live workspace.</h1><p>Live sign-in and data access are not connected in this foundation. No donor records are loaded.</p><p>Follow the deployment guide to complete authentication and validate access policies before enabling live use.</p></section>}
       </main></div>;
-  // Extensions can add attributes such as __processed_* to body before React
-  // hydrates. Limit this escape hatch to body; descendants still get checked.
-  return <html lang="en"><body suppressHydrationWarning><a className="skip-link" href="#main">Skip to content</a>{demo ? <AssistantWorkspaceProvider><DemoWorkspaceProvider>{shell}<ChatWidget demo /></DemoWorkspaceProvider></AssistantWorkspaceProvider> : <>{shell}<ChatWidget demo={false} /></>}</body></html>;
+  return <html lang="en"><body><a className="skip-link" href="#main">Skip to content</a>{demo ? <AssistantWorkspaceProvider><DemoWorkspaceProvider>{shell}<ChatWidget demo /></DemoWorkspaceProvider></AssistantWorkspaceProvider> : <>{shell}<ChatWidget demo={false} /></>}</body></html>;
 }

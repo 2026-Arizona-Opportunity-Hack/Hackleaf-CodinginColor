@@ -79,6 +79,8 @@ npm run dev
 
 Open `http://localhost:3000`. Use Node 22.13+ (22.x). Run `npm run check` and `npm run build` before handing off. `APP_DATA_MODE=live` intentionally closes the fixture workspace until auth and live repositories are implemented.
 
+Browser-extension hydration warnings and the compatibility tests are explained in [browser troubleshooting](docs/browser-compatibility.md).
+
 Teammates: follow [your personal prompt](docs/team/README.md), own only your assigned paths, and request shared-file changes from Kaustubh. All dependency/migration changes go through one owner to reduce merge conflicts.
 
 ## Links

@@ -44,26 +44,87 @@ async function send(page: Page, text: string) {
   await expect(page.getByRole("button", { name: "Stop assistant response" })).toBeHidden({ timeout: 15000 });
 }
 
-test("extension-added body attributes hydrate without an error overlay", async ({ page }) => {
+async function simulateExtensionMarkers(page: Page) {
+  // Simulate both reported extension mutations as the HTML is parsed, including
+  // Next's hidden metadata divs outside RootLayout. Don't re-add removed markers.
+  await page.addInitScript(() => {
+    const visited = new WeakSet<Element>();
+    let injected = 0;
+    Object.defineProperty(window, "__testInjectedMarkers", { get: () => injected });
+    function mark(element: Element) {
+      if (visited.has(element)) return;
+      visited.add(element);
+      if (element.tagName === "DIV") { element.setAttribute("bis_skin_checked", "1"); injected++; }
+      if (element.tagName === "BODY") element.setAttribute("__processed_637e92d4-3bc6-4f9d-9e20-aee6f51a194c__", "true");
+    }
+    const observer = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) {
+        if (!(node instanceof Element)) continue;
+        mark(node); node.querySelectorAll("div,body").forEach(mark);
+      }
+    });
+    observer.observe(document, { childList: true, subtree: true });
+  });
+}
+
+test("extension markers across framework markup and app pages hydrate without an error overlay", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
-  // Simulate the exact external mutation from the reported hydration diff,
-  // before any application JavaScript runs.
+  await simulateExtensionMarkers(page);
+  await setup(page);
+  await expect(page).toHaveTitle("Hackleaf · Coding in Color");
+  expect(await page.evaluate(() => Reflect.get(window, "__testInjectedMarkers"))).toBeGreaterThan(10);
+  await expect(page.locator(".app-shell[bis_skin_checked], .app-shell [bis_skin_checked]")).toHaveCount(0);
+  await expect(page.locator("body")).not.toHaveAttribute("__processed_637e92d4-3bc6-4f9d-9e20-aee6f51a194c__", "true");
+  await expect(page.getByRole("heading", { name: "What can we move forward?" })).toBeVisible();
+  await page.screenshot({ path: "/tmp/hackleaf-assistant-hydration-fixed.png" });
+  expect(errors).toEqual([]);
+});
+
+test("every demo route hydrates and opens the assistant with extension markers and a different browser year", async ({ page }) => {
+  test.setTimeout(180000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  await simulateExtensionMarkers(page);
+  await page.clock.setFixedTime(new Date("2030-01-01T00:00:00Z"));
+  await page.route("**/api/assistant/status?*", (route) => route.fulfill({ json: { ready: true, message: "Isolated UI test provider" } }));
+  const routes = ["/", "/donors", "/donors/00000000-0000-4000-8000-000000000001", "/imports", "/follow-ups", "/retention", "/reports", "/donation-requests", "/donor-portal", "/donor-portal/login", "/donor-portal/register", "/donor-portal/donate", "/donor-portal/history", "/donor-portal/profile"];
+  for (const path of routes) {
+    const response = await page.goto(path);
+    expect(response?.status(), path).toBe(200);
+    await expect(page).toHaveURL(`http://127.0.0.1:3310${path}`);
+    await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "Open Hackleaf assistant" }).click();
+    await expect(page.getByLabel("Message Hackleaf assistant")).toBeEnabled();
+    await expect(page.locator(".app-shell[bis_skin_checked], .app-shell [bis_skin_checked]")).toHaveCount(0);
+    await page.getByRole("button", { name: "Close assistant panel" }).click();
+    await expect(page.getByRole("button", { name: "Open Hackleaf assistant" })).toBeFocused();
+    if (path === "/retention") {
+      await expect(page.getByLabel("Previous year")).toHaveValue("2025");
+      await expect(page.getByLabel("Current year")).toHaveValue("2026");
+    }
+    expect(errors, path).toEqual([]);
+  }
+  await page.screenshot({ path: "/tmp/hackleaf-all-routes-hydration-fixed.png" });
+});
+
+test("unrelated hydration mismatches still produce diagnostics", async ({ page }) => {
+  test.skip(process.env.PLAYWRIGHT_DEV !== "true", "React reports attribute diagnostics in development.");
+  const diagnostics: string[] = [];
+  page.on("console", (message) => { if (message.type() === "error") diagnostics.push(message.text()); });
   await page.addInitScript(() => {
     const observer = new MutationObserver(() => {
       if (!document.body) return;
-      document.body.setAttribute("__processed_637e92d4-3bc6-4f9d-9e20-aee6f51a194c__", "true");
+      document.body.setAttribute("data-unexpected-hydration", "keep-this-diagnostic");
       observer.disconnect();
     });
     observer.observe(document, { childList: true, subtree: true });
   });
   await setup(page);
-  await expect(page).toHaveTitle("Hackleaf · Coding in Color");
-  await expect(page.locator("body")).toHaveAttribute("__processed_637e92d4-3bc6-4f9d-9e20-aee6f51a194c__", "true");
-  await expect(page.getByRole("heading", { name: "What can we move forward?" })).toBeVisible();
-  await page.screenshot({ path: "/tmp/hackleaf-assistant-hydration-fixed.png" });
-  expect(errors).toEqual([]);
+  await expect.poll(() => diagnostics.some((message) => message.includes("data-unexpected-hydration"))).toBe(true);
+  await expect(page.locator("body")).toHaveAttribute("data-unexpected-hydration", "keep-this-diagnostic");
 });
 
 test("navigation ignores a late connection check and keeps the current chat usable", async ({ page }) => {
