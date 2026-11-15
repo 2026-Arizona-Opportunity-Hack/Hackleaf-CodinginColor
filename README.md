@@ -4,6 +4,8 @@ Built at [ASU Fall Hackathon 2026 | Phoenix Hackathon for Nonprofits: Nov 14-15]
 
 **Current status: teammate-ready Next.js foundation, not the completed P0 product.** Run a fictional donor workspace without accounts or keys. Read the [requirements](docs/requirements.md), [architecture](docs/architecture.md), and [three-person work plan](docs/team/README.md) before contributing.
 
+**OpenAI assistant:** use **Ask Hackleaf** on any page (Cmd/Ctrl+J). It can query the workspace, prepare reports/CSV downloads and propose donor, task, outreach and request changes for review. Applied demo changes update the pages. Add a server-side `OPENAI_API_KEY` with API credits to enable the model; production/live setup, tool capabilities and tests are in [the assistant guide](docs/assistant.md). No automatic messages or payments.
+
 > **⚠️ This is your team's ONE repository — all code goes here.** Please don't create
 > another repo (personal or org). Judges, the Team Dashboard's code-activity card,
 > the public project page and the nonprofit all read **this** repo; work pushed
@@ -53,7 +55,7 @@ Judges score **Scope, Documentation, Polish and Security**, plus a separate **Ac
 
 Coding in Color needs one reliable place for donor history, board ownership, follow-through and evidence for funder renewals. The base provides a branded responsive workspace, searchable/filterable fictional donor directory, profiles/timelines, retention calculations and separate feature routes for parallel implementation.
 
-Also included: typed domain/validation contracts, source fixtures, optional Supabase clients, initial RLS migration, business-rule/database tests, CI and a protected versioned API boundary. Live sign-in, persistent CRUD/imports, automated ownership transactions, quarterly drafts, message delivery, outcomes integration and packet export remain to be implemented. There is no AI integration, public deployment or real donor data. All unfinished routes say so.
+Also included: typed domain/validation contracts, source fixtures, Supabase clients/migrations, business-rule/database tests, CI, CSV preview/live import primitives, donation-request and donor-portal demos, outreach review, packet preparation and the OpenAI assistant. Live sign-in/donor identity, transactional bulk import, delivery/payments and outcomes integration remain incomplete. The assistant adds an atomic authenticated mutation backend; it does not turn the existing simulated donor portal into real authentication or payment processing. No public deployment or real donor data is included.
 
 ## Tech stack
 
