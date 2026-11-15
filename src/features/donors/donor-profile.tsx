@@ -17,6 +17,6 @@ export function DonorProfile({ id }: { id: string }) {
     <dl className="detail-grid"><div><dt>Board-member owner</dt><dd>{demoMembers.find((m) => m.id === donor.ownerId)?.name}</dd></div><div><dt>Email · fictional</dt><dd>{donor.email ?? "Not provided"}</dd></div><div><dt>Giving sources</dt><dd>{donor.sources.join(", ")}</dd></div></dl>
     <section><h2>Next steps</h2>{demoFollowUps.some((t) => t.donorId === id) ? <TaskList tasks={demoFollowUps.filter((t) => t.donorId === id)} /> : <p>No next step has been recorded for this fictional relationship.</p>}</section>
     <section className="recent-activity"><h2>Relationship timeline</h2><ul className="simple-list">{events.map((event) => <li key={event.id}><time dateTime={event.date}>{formatDate(event.date)}, {event.date.slice(0, 4)}</time><p><strong>{event.title}</strong></p><p>{event.detail}</p></li>)}</ul>{events.length === 0 ? <p>No gifts or communications recorded yet.</p> : null}</section>
-    <LogCommunicationForm donorName={donor.name} />
+    <LogCommunicationForm donorId={donor.id} donorName={donor.name} />
   </>;
 }
