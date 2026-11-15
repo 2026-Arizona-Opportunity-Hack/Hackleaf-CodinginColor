@@ -15,7 +15,7 @@ Built at [ASU Fall Hackathon 2026 | Phoenix Hackathon for Nonprofits: Nov 14-15]
 | **Nonprofit** | [Coding in Color](https://www.ohack.dev/nonprofit/YIXYdYCoxIZC08uQ5DL3) |
 | **Problem statement** | [Donor & Funder Relationship Platform (CIC Problem 2)](https://www.ohack.dev/project/e26932c0df1b11f189a8dead68f07eb5) |
 | **Team page** | [Hackleaf](https://www.ohack.dev/hack/fall-2026/team/cb3f0794e05d11f1a3c6deadfb009123) · [Team Dashboard](https://www.ohack.dev/hack/fall-2026/manageteam) (story, demo video, submit) |
-| **Slack** | team: [#vdwived2](https://opportunity-hack.slack.com/app_redirect?channel=vdwived2) · nonprofit: [#npo-coding-in-color](https://opportunity-hack.slack.com/app_redirect?channel=npo-coding-in-color) · help: [#ask-a-mentor](https://opportunity-hack.slack.com/archives/C01E5CGDQ74) |
+| **Slack** | team: [#hackleaf](https://opportunity-hack.slack.com/app_redirect?channel=vdwived2) · nonprofit: [#npo-coding-in-color](https://opportunity-hack.slack.com/app_redirect?channel=npo-coding-in-color) · help: [#ask-a-mentor](https://opportunity-hack.slack.com/archives/C01E5CGDQ74) |
 | **Created by** | Greg V [Staff/Mentor] |
 
 ## Final day
