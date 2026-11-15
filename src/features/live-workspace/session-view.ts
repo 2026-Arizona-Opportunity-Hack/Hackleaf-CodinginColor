@@ -4,4 +4,5 @@ export interface SessionView {
   accountId: string | null;
   name: string;
   role: string | null;
+  demo?: boolean;
 }

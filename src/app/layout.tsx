@@ -31,7 +31,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const organizationId=demo?await currentTenant():null;
   const organization=organizations.find(o=>o.id===organizationId);
   const demoUser=demo?await getDemoUser():null;
-  const session:SessionView|null = demo ? {status:demoUser?"authorized":"signed_out",accountId:demoUser?.id??null,name:demoUser?.name??"Guest",role:demoUser?.role??null} : configured ? await getSessionView() : null;
+  const session:SessionView|null = demo ? {status:demoUser?"authorized":"signed_out",accountId:demoUser?.id??null,name:demoUser?.name??"Guest",role:demoUser?.role??null,demo:true} : configured ? await getSessionView() : null;
   const signedIn = !!session?.accountId;
   const shell = <div className="app-shell"><aside className="sidebar"><Link href={demo ? "/" : "/dashboard"} className="wordmark">Hackleaf<span>{demo?organization?.name:"Coding in Color"}</span></Link>
       <Navigation session={session} /><p className="sidebar-note">Built for relationships.</p></aside>
