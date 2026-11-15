@@ -146,6 +146,13 @@ Incomplete: transactional import/assignment guarantees, Salesforce/DonorPerfect 
 
 ## Run it locally
 
+Sponsored AI: put Key 1 in the ignored `.env` as `OHACK_API_KEY`.
+The assistant, AI dashboard brief and priority ranking then use the OHack gateway
+with `gpt-oss-120b`; `OHACK_MODEL` optionally selects another model allowed on that key.
+These event keys expire **November 15 at 6 PM Arizona time**. Renew the key or remove
+it and configure a funded `OPENAI_API_KEY` for continued service. Production keys
+must also be configured in Vercel. Never put keys in chat, source or screenshots.
+
 ```bash
 git clone https://github.com/2026-Arizona-Opportunity-Hack/Hackleaf-CodinginColor.git
 cd Hackleaf-CodinginColor

@@ -3,6 +3,7 @@ import { createContext, AssistantFailure } from "@/features/assistant/server-con
 import { boundedJson, consumeRate, sameOrigin } from "@/features/assistant/security";
 import { runAssistant } from "@/features/assistant/engine";
 import { openAIProvider, providerError } from "@/features/assistant/openai";
+import { aiConfigured } from "@/features/assistant/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
     if (!body.success) return Response.json({ error: "Check your message, attachment and workspace data; or start a new chat if it is too large." }, { status: 400 });
     const context = await createContext(request, body.data.path, body.data.demo);
     context.attachment = body.data.attachment;
-    if (!process.env.OPENAI_API_KEY?.trim()) throw new AssistantFailure("OPENAI_API_KEY is not configured on the server.", 503);
+    if (!aiConfigured()) throw new AssistantFailure("Configure OHACK_API_KEY or OPENAI_API_KEY on the server.", 503);
     if (!consumeRate(`chat:${context.actor.id}`, 6, 60000)) throw new AssistantFailure("Please wait a minute before sending more messages.", 429);
     if (context.actor.mode === "demo") {
       if (!consumeRate("demo-global-day", 120, 86400000)) throw new AssistantFailure("The demo’s daily AI request allowance is used up.", 429);

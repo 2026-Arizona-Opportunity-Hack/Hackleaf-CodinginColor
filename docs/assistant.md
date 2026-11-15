@@ -1,5 +1,23 @@
 # Hackleaf assistant
 
+## Sponsored OHack gateway
+
+Set server-only `OHACK_API_KEY` to the team's Key 1. It takes precedence over
+`OPENAI_API_KEY`, using the fixed endpoint `https://ai.ohack.dev/v1` and default
+`OHACK_MODEL=gpt-oss-120b`. This shares the existing streaming/tool/action pipeline
+with dashboard summaries and request ranking. Gateway-only configuration is valid.
+No key is exposed through status or browser code. Empty-argument tools receive an
+inert transport parameter for gateway compatibility, stripped before domain
+validation. The original direct OpenAI path remains available when the gateway key
+is removed; we do not silently send private records to another provider on failure.
+
+The supplied event keys expire **November 15, 2026, 6 PM America/Phoenix** and have
+finite budgets. Continued service requires a renewed key or funded OpenAI account.
+Errors distinguish expired/unauthorized access, rate/budget limits and configuration.
+Demo opt-in and authenticated role/action controls remain in force. The live
+provider test is opt-in (`RUN_GATEWAY_LIVE=true npx vitest run src/features/assistant/gateway.live.test.ts`),
+uses fictional data, spends team credit and never applies its proposal.
+
 An OpenAI-powered assistant is available from **Ask Hackleaf** on every page. Open/close with the button or Cmd/Ctrl+J. It understands the current page, preserves a conversation across staff navigation, and resets the conversation when switching to the donor audience or changing donor demo identity.
 
 ## What it does
@@ -43,7 +61,7 @@ The implementation task configured a random `AI_ACTION_SECRET` in the local `.en
 
 Run `npm ci` and `npm run dev`. Next.js loads `.env` automatically. In development, the fictional assistant works with an API key; missing configuration produces a visible setup state. API credit is separate from having a ChatGPT subscription. During verification, the supplied key loaded correctly but the API returned **429 `credit_balance_exhausted` / `insufficient_quota`**. No successful real model response has been claimed. Replace/fund the project key to enable that final external integration check.
 
-The [Responses API](https://developers.openai.com/api/docs/guides/streaming-responses), [function-calling contract](https://developers.openai.com/api/docs/guides/function-calling), [strict schema subset](https://developers.openai.com/api/docs/guides/structured-outputs) and [GPT-5.4 mini model reference](https://developers.openai.com/api/docs/models/gpt-5.4-mini) were checked during implementation. The server fixes the official OpenAI endpoint; arbitrary model-supplied URLs, shell/SQL commands and browser credentials are never executable tools. `OPENAI_MODEL` can select another Responses/function-calling-compatible model. The SDK streams typed events and uses its documented output-to-input projection when replaying function-call/reasoning outputs. Tool schemas remove Zod-specific string length/complex-pattern constraints from the model schema, retaining them in the authoritative server validator and describing the length bounds. Batched tool requests are processed under the same 12-call/five-proposal ceilings. Provider storage is disabled with `store: false`; this is not a claim about all provider retention policies.
+The [Responses API](https://developers.openai.com/api/docs/guides/streaming-responses), [function-calling contract](https://developers.openai.com/api/docs/guides/function-calling), [strict schema subset](https://developers.openai.com/api/docs/guides/structured-outputs) and [GPT-5.4 mini model reference](https://developers.openai.com/api/docs/models/gpt-5.4-mini) were checked during implementation. The server permits only the official OpenAI endpoint or OHack gateway; arbitrary model-supplied URLs, shell/SQL commands and browser credentials are never executable tools. `OPENAI_MODEL` can select another Responses/function-calling-compatible model. The SDK streams typed events and uses its documented output-to-input projection when replaying function-call/reasoning outputs. Tool schemas remove Zod-specific string length/complex-pattern constraints from the model schema, retaining them in the authoritative server validator and describing the length bounds. Batched tool requests are processed under the same 12-call/five-proposal ceilings. Provider storage is disabled with `store: false`; this is not a claim about all provider retention policies.
 
 ## Live backend
 

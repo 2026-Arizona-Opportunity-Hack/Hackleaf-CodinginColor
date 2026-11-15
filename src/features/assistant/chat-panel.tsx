@@ -142,7 +142,7 @@ export function ChatPanel({ demo, open, onClose }: { demo: boolean; open: boolea
         <button type="button" className={styles.iconButton} aria-label="Attach CSV for review" disabled={!status?.ready || busy} onClick={() => fileInput.current?.click()}><AssistantIcon name="attach" /></button><span>Shift + Enter for a new line</span>
         {busy ? <button type="button" className={styles.send} aria-label="Stop assistant response" onClick={() => abort.current?.abort()}><AssistantIcon name="stop" /></button> : <button type="submit" className={styles.send} aria-label="Send message" disabled={!input.trim() || !status?.ready || applying}><AssistantIcon name="send" /></button>}</div>
     </form>
-    <footer className={styles.footer}>Powered by OpenAI · Check important details</footer>
+    <footer className={styles.footer}>AI assistant · Check important details</footer>
     <p className={styles.srOnly} role="status" aria-live="polite">{announcement}</p>
   </section>;
 }

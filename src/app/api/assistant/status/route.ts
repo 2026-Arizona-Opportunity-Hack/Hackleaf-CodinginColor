@@ -1,5 +1,6 @@
 import { createContext, AssistantFailure } from "@/features/assistant/server-context";
 import { newSession, sessionFor } from "@/features/assistant/security";
+import { aiConfigured } from "@/features/assistant/config";
 
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
@@ -10,8 +11,8 @@ export async function GET(request: Request) {
     const session = existing ?? created!.id;
     const context = await createContext(request, new URL(request.url).searchParams.get("path") ?? "/", null, session);
     if (created) headers["Set-Cookie"] = created.cookie;
-    const ready = Boolean(process.env.OPENAI_API_KEY?.trim());
-    return Response.json({ ready, mode: context.actor.mode, message: ready ? "Ready to help with your workspace." : "Add OPENAI_API_KEY to the server’s .env, then restart the app. Never paste a key into chat." }, { headers });
+    const ready = aiConfigured();
+    return Response.json({ ready, mode: context.actor.mode, message: ready ? "Ready to help with your workspace." : "Configure OHACK_API_KEY or OPENAI_API_KEY on the server, then restart. Never paste a key into chat." }, { headers });
   } catch (error) {
     return Response.json({ ready: false, message: error instanceof AssistantFailure ? error.message : "Assistant setup is incomplete. Check the server’s assistant configuration." }, { status: error instanceof AssistantFailure ? error.status : 503, headers });
   }
