@@ -14,6 +14,7 @@ export function StaffSignInForm() {
   async function handleGoogle() {
     setGooglePending(true);
     setGoogleError("");
+    try {
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -21,6 +22,10 @@ export function StaffSignInForm() {
     });
     if (error) {
       setGoogleError(error.message);
+      setGooglePending(false);
+    }
+    } catch {
+      setGoogleError("Google sign-in could not start. Check your connection and try again.");
       setGooglePending(false);
     }
   }

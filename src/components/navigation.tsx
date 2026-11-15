@@ -19,12 +19,14 @@ const demoAdminLinks = [
 
 const liveLinks = [
   ["/dashboard", "Dashboard"], ["/donors", "Donors"],
+  ["/clients", "Clients"], ["/appointments", "Appointments"],
+  ["/client-reports", "Service reports"], ["/client-funder-reports", "Funder templates"], ["/client-intake", "Photo intake"],
   ["/donation-requests", "Donation requests"], ["/imports", "Imports"],
   ["/follow-ups", "Follow-ups"], ["/retention", "Retention"],
   ["/reports", "Funder packets"],
 ] as const;
 
-const liveAdminLinks = [["/admin/members", "Staff members"]] as const;
+const liveAdminLinks = [["/admin/members", "Staff members"], ["/client-data", "Client CSV"], ["/client-settings", "Client settings"], ["/client-integrations", "Integrations"], ["/audit", "Audit log"]] as const;
 
 export function Navigation({ session }: { session?: SessionView | null }) {
   const pathname = usePathname();
