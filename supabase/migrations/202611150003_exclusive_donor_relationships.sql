@@ -3,6 +3,7 @@
 begin;
 drop policy if exists member_read_donors on public.donors;
 drop policy if exists owned_donors on public.donors;
+drop policy if exists owned_donor_create on public.donors;
 create policy owned_donors on public.donors for select to authenticated
   using ((select private.is_member()) and owner_id = (select auth.uid()));
 -- Existing admin_all permits active admins to read/manage every relationship.
