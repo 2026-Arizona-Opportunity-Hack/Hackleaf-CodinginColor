@@ -6,6 +6,7 @@ import { DonorDirectory } from "@/features/donors/donor-directory";
 import { LiveDonorDirectory } from "@/features/donors/live-donor-directory";
 import { isDemoWorkspace } from "@/lib/workspace";
 import { fetchLiveDonors } from "@/features/donors/donor-repository";
+import { NewDonorButton } from "@/features/donors/new-donor-button";
 
 export default async function DonorsPage() {
   if (isDemoWorkspace()) {
@@ -23,7 +24,7 @@ export default async function DonorsPage() {
   return (
     <>
       <PageHeading title="Every donor belongs here." description="One place for giving history, ownership, and the next conversation." />
-
+      <NewDonorButton />
       <LiveDonorDirectory initialDonors={donors} />
     </>
   );
