@@ -1,0 +1,14 @@
+.share { margin-top:16px; }
+.trigger,.composer button,.actions a { min-height:42px; border:1px solid #bdd7c6; border-radius:8px; background:white; color:#007a3d; padding:10px 14px; font-size:13px; cursor:pointer; }
+.composer { margin-top:16px; border-top:1px solid #cce4d4; padding-top:20px; display:grid; gap:10px; }
+.composer h3 { color:#007a3d; font-size:18px; }
+.composer p { font-size:12px; line-height:1.7; color:#496353; }
+.composer label { font-size:13px; font-weight:600; }
+.composer input:not([type=checkbox]),.composer textarea { width:100%; padding:12px; border:1px solid #aac9b5; border-radius:8px; background:white; color:#182d20; font:inherit; font-size:14px; }
+.composer textarea { resize:vertical; }
+.review { display:flex; align-items:center; gap:10px; min-height:44px; }
+.review input { width:20px; height:20px; accent-color:#007a3d; }
+.actions { display:flex; flex-wrap:wrap; gap:12px; }
+.actions a { display:inline-flex; align-items:center; text-decoration:none; background:#007a3d; color:white; }
+.actions a[aria-disabled=true],.composer button:disabled { opacity:.5; cursor:default; }
+.share :is(button,a,input,textarea):focus-visible { outline:3px solid #007a3d; outline-offset:3px; }
