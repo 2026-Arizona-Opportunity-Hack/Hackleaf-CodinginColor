@@ -10,7 +10,7 @@ beforeAll(async () => {
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;
     insert into auth.users values('${admin}'),('${board}'),('${other}'),('${outsider}');`);
-  for (const filename of ["202611140001_foundation.sql", "202611140003_assistant.sql"]) await db.exec(readFileSync(new URL(`../../../supabase/migrations/${filename}`, import.meta.url), "utf8"));
+  for (const filename of ["202611140001_foundation.sql", "202611140003_assistant.sql", "202611150008_assistant_owner_compat.sql"]) await db.exec(readFileSync(new URL(`../../../supabase/migrations/${filename}`, import.meta.url), "utf8"));
   await db.exec(`insert into public.members(id,display_name,role) values('${admin}','Admin','admin'),('${board}','Board','board_member'),('${other}','Other','board_member');
     insert into public.programs values('ai-academy','AI Academy');
     insert into public.donors(id,name,kind,owner_id) values('${donorA}','Fictional A','individual','${board}'),('${donorB}','Fictional B','individual','${other}');`);
@@ -75,4 +75,12 @@ it("persists usage caps, denies inactive users and protects receipts from forger
   await db.exec("set role anon");
   try { await expect(db.query("select public.assistant_reserve_turn()")).rejects.toThrow(); }
   finally { await db.exec("reset role"); }
+});
+
+it("supports the live admin-owned roster without weakening action authorization", async()=>{
+ await db.query("update public.members set active=false where role='board_member'");
+ try { const donor=crypto.randomUUID();await apply(admin,donor,"create_donor",{name:"Sample admin-owned donor",kind:"individual",email:null},{});
+ expect((await db.query<{owner_id:string}>("select owner_id from public.donors where id=$1",[donor])).rows[0].owner_id).toBe(admin);
+ await apply(admin,crypto.randomUUID(),"create_follow_up",{donorId:donor,title:"Reviewed next step",dueOn:"2026-11-16",kind:"check_in"},await baseline(donor));
+ }finally{await db.query("update public.members set active=true where id=$1",[board]);}
 });
