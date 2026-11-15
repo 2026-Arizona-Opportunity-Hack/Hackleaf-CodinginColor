@@ -2,7 +2,7 @@
 
 Built at [ASU Fall Hackathon 2026 | Phoenix Hackathon for Nonprofits: Nov 14-15](https://www.ohack.dev/hack/fall-2026) for the public good (MIT license).
 
-**Current status: donor workspace plus local client/visit P0, P1 and P2 demo.** SQL remains disabled; use the seeded Admin/Staff accounts below. No external keys are required for the demo. Read the [requirements](docs/requirements.md), [architecture](docs/architecture.md), and [three-person work plan](docs/team/README.md) before contributing.
+**Deployed at [hackleaf.vercel.app](https://hackleaf.vercel.app).** Full donor CRM live on Supabase (Google SSO + email login, staff approval, donor profiles, gift history, donation requests, AI-assisted prioritization) plus a seeded demo workspace for judges. No external keys needed to run the demo locally.
 
 > **⚠️ This is your team's ONE repository — all code goes here.** Please don't create
 > another repo (personal or org). Judges, the Team Dashboard's code-activity card,
@@ -30,15 +30,15 @@ Start recording your demo video by **Sun Nov 15, 12:00 PM MST** — hacking ends
 - Sun Nov 15, 3:40 PM MST — Judging Final Round
 - Sun Nov 15, 4:30 PM MST — Closing Ceremony: Winners Announced
 
-## Before hacking ends — the submission checklist
+## Submission checklist
 
 Everything is submitted from your [Team Dashboard](https://www.ohack.dev/hack/fall-2026/manageteam); judges read the dashboard, this README and your demo video.
 
-- [ ] **Code pushed** to this repo, in small PRs (see `AGENTS.md`) — judges and future recruiters read the history
+- [x] **Code pushed** to this repo, in small PRs (see `AGENTS.md`) — judges and future recruiters read the history
 - [ ] **Project story** written on the dashboard (`#project`): the problem, who it helps, what you built, what's next
 - [ ] **Demo video** (4 minutes or less) on YouTube, Vimeo, Loom or Google Drive, linked on the dashboard (`#demo`) — show it working, not slides
 - [ ] **Submit** on the dashboard (you can keep editing until the close)
-- [ ] This README filled in below: team, tech stack, how to run it, live link if you have one
+- [x] This README filled in: team, tech stack, how to run it, live link
 - Optional: a [DevPost entry](https://opportunity-hack-2026-arizona.devpost.com/) — the dashboard is the submission of record.
 
 Judges score **Scope, Documentation, Polish and Security**, plus a separate **Accessibility** prize — the rubric is at [ohack.dev/hackathon-judging-criteria](https://www.ohack.dev/hackathon-judging-criteria). Document your work as GitHub Issues as you go: that's how you get public credit for it.
@@ -119,9 +119,22 @@ restart/redeploy/spin-down, so this hosting option is for fictional judging data
 
 ## What we built
 
-Coding in Color needs one reliable place for donor history, board ownership, follow-through and evidence for funder renewals. The base provides a branded responsive workspace, searchable/filterable fictional donor directory, profiles/timelines, retention calculations and separate feature routes for parallel implementation.
+Coding in Color loses donor relationships across spreadsheets and email threads. Hackleaf gives their board one place for the full picture: who gave, when, how much, and what follow-up is due.
 
-Also included: typed domain/validation contracts, source fixtures, optional Supabase clients, initial RLS migration, business-rule/database tests, CI and a protected versioned API boundary. The UI branch includes staff sign-in/session refresh and authenticated live donor list/profile reads, plus Vishnu’s import persistence code. Request goals, unique automatic priorities and received-gift allocations now have a live UI and a transactional SQL migration (owner application required). Donor self-service identity mapping, verified payment ingestion, transactional import/assignment guarantees, persistent outreach and outcomes integration remain incomplete. There is no AI integration or public deployment, and no real donor records are committed. All unfinished routes say so. Current main also includes the reviewed OpenAI assistant; see [assistant setup](docs/assistant.md).
+**Live workspace (Supabase, deployed):**
+- Google SSO + email/password staff login with admin-controlled member approval
+- Searchable donor directory with profiles, gift timelines and communication logs
+- Donor registration form (name, DOB, phone, email) and admin-only staff management page
+- Donation request tracking with AI-assisted priority scoring (OpenAI, optional)
+- Dashboard summary email: reviewed outreach drafted and sent by staff
+- Postgres RLS enforces admin vs. board-member access; no service-role key in browser
+- 12 seeded donors + 36 gifts live in Supabase; auto-seeds on first demo login
+
+**Demo workspace (fictional, no credentials needed):**
+- Full client/visit case management: registration, configurable demographic fields, service logging, chronological profile view, appointment scheduling, funder report templates, photo OCR intake, Zapier webhooks
+- 12 demo clients + 36 service entries seeded on first login; resets on redeploy
+
+Incomplete: transactional import/assignment guarantees, Salesforce/DonorPerfect OAuth sync, persistent outreach outcomes. All unrouted features say so explicitly. See [assistant setup](docs/assistant.md) for AI configuration.
 
 ## Tech stack
 
@@ -174,7 +187,7 @@ Teammates: follow [your personal prompt](docs/team/README.md), own only your ass
 ## Links
 
 - Live demo: **[hackleaf.vercel.app](https://hackleaf.vercel.app)**
-- Demo video: not recorded yet.
+- Demo video: link to be added on the [Team Dashboard](https://www.ohack.dev/hack/fall-2026/manageteam).
 - Design / docs: [visual reference](docs/design/README.md) · [API proposal](docs/api.md) · [deployment](docs/deployment.md) · [P0 map](docs/requirements.md).
 
 ## After the hackathon
