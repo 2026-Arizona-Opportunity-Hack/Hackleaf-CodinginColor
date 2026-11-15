@@ -43,7 +43,7 @@ export function DonorProfile() {
   const profile = demo.profiles.find((item) => item.id === demo.currentId);
   const [message, setMessage] = useState("");
   return <PortalFrame title="My donor profile" description="Manage the information and preferences attached to your demo profile."><DonorGate>
-    {profile && <ProfileForm key={profile.id} profile={profile} onSave={(next) => { demo.setProfiles(demo.profiles.map((item) => item.id === next.id ? next : item)); setMessage("Demo profile updated for this tab. Existing donation anonymity choices are preserved."); }} />}
+    {profile && <ProfileForm key={[profile.id, profile.phone, profile.is_anonymous, profile.do_not_contact].join(":")} profile={profile} onSave={(next) => { demo.setProfiles(demo.profiles.map((item) => item.id === next.id ? next : item)); setMessage("Demo profile updated for this tab. Existing donation anonymity choices are preserved."); }} />}
     <p role="status">{message}</p>
   </DonorGate></PortalFrame>;
 }
