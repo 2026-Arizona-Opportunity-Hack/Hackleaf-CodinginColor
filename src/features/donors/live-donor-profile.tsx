@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { getLiveStaff } from "@/lib/supabase/member";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeading } from "@/components/page-heading";
@@ -6,7 +8,9 @@ import { fetchLiveDonor } from "./donor-repository";
 import { LogCommunicationForm } from "./log-communication-form";
 
 export async function LiveDonorProfile({ id }: { id: string }) {
-  const donor = await fetchLiveDonor(id);
+  const access=await getLiveStaff();
+  if(access.status!=="authorized")return <section className="setup-state"><h1>Staff access required.</h1><p>An active staff membership is required to view live donor records.</p><Link href={access.status==="signed_out"?"/auth/sign-in":"/dashboard"}>{access.status==="signed_out"?"Staff sign-in":"Return to dashboard"}</Link></section>;
+  const donor = z.uuid().safeParse(id).success?await fetchLiveDonor(id):null;
   if (!donor) notFound();
 
   const events = [

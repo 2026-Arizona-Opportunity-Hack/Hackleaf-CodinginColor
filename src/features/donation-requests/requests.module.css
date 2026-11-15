@@ -100,3 +100,7 @@
 .formFields > .status { justify-self: start; }
 .headerActions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 @media (max-width: 640px) { .headerActions { display: grid; width: 100%; } }
+
+.aiPriorityNote{display:flex;gap:20px;justify-content:space-between;align-items:center;border:1px solid #cde2d4;background:#f0f8f3;border-radius:10px;padding:18px 20px;margin:22px 0;color:#185438;}
+.aiPriorityNote p{font-size:13px;margin:6px 0;}.aiPriorityNote small{display:block;font-size:11px;line-height:1.7;color:#526d5d;}.aiPriorityNote button{flex-shrink:0;}.aiPriorityNote button:disabled{opacity:.55;cursor:not-allowed;}
+@media(max-width:700px){.aiPriorityNote{align-items:start;flex-direction:column;}}

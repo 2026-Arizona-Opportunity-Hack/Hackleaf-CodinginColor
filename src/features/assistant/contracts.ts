@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { donorInput } from "@/lib/domain/validation";
-import { profileInput } from "@/features/donor-portal/model";
 
 const id = z.string().min(1).max(100);
 const date = z.iso.date();
@@ -17,7 +16,7 @@ export const relationshipsSchema = z.object({ donors: z.array(donorSchema).max(2
 export const demoSnapshotSchema = z.object({
   relationships: relationshipsSchema,
   giving: z.object({ requests: z.array(requestSchema).max(100), gifts: z.array(giftSchema).max(400), allocations: z.array(z.object({ giftId: id, requestId: id, amountCents: z.number().int().positive() }).strict()).max(600) }).strict(),
-  profile: profileInput.safeExtend({ id }).nullable(),
+  profile: z.null(),
 }).strict();
 export type Relationships = z.infer<typeof relationshipsSchema>;
 export type DemoSnapshot = z.infer<typeof demoSnapshotSchema>;
@@ -32,7 +31,6 @@ export const actionSchemas = {
   draft_outreach: z.object({ donorId: id, channel: z.enum(["email", "sms"]), subject: z.string().trim().max(200).nullable(), body: text(10000) }).strict(),
   create_request: z.object({ campaign: text(120), programId: z.enum(["ai-academy", "summer-camp"]), goalCents: z.number().int().positive().max(99999999999), frequency: z.enum(["one_time", "monthly", "annually"]), note: text(500), state: z.enum(["draft", "active"]) }).strict(),
   update_request: z.object({ requestId: id, campaign: text(120), goalCents: z.number().int().positive().max(99999999999), note: text(500), state: z.enum(["draft", "active"]) }).strict(),
-  update_my_profile: z.object({ phone: z.string().trim().max(40), is_anonymous: z.boolean(), do_not_contact: z.enum(["none", "email", "text", "all"]) }).strict(),
 } as const;
 export type ActionName = keyof typeof actionSchemas;
 export type Action = { [K in ActionName]: { name: K; input: z.infer<(typeof actionSchemas)[K]> } }[ActionName];
@@ -48,7 +46,6 @@ export const readSchemas = {
   list_follow_ups: z.object({ status: z.enum(["all", "open", "completed"]), donorId: id.nullable(), through: date.nullable() }).strict(),
   board_workload: z.object({}).strict(),
   list_requests: z.object({}).strict(),
-  my_donor_profile: z.object({}).strict(),
   prepare_funder_packet: z.object({ donorId: id, start: date, end: date }).strict(),
   preview_import: z.object({ source }).strict(),
   export_data: z.object({ dataset: z.enum(["donors", "follow_ups", "retention", "requests"]) }).strict(),
@@ -76,9 +73,9 @@ export type AssistantEvent =
   | { type: "done"; inputTokens: number; outputTokens: number };
 
 const staffRoutes = ["/", "/donors", "/imports", "/follow-ups", "/retention", "/reports", "/donation-requests"];
-const donorRoutes = ["/donor-portal", "/donor-portal/register", "/donor-portal/login", "/donor-portal/donate", "/donor-portal/history", "/donor-portal/profile"];
 export function safePath(path: string, audience: "staff" | "donor"): string | null {
-  const routes = audience === "donor" ? donorRoutes : [...staffRoutes, ...donorRoutes];
+  if(audience!=="staff")return null;
+  const routes = staffRoutes;
   if (routes.includes(path)) return path;
   return audience === "staff" && /^\/donors\/[a-zA-Z0-9-]{1,100}$/.test(path) ? path : null;
 }

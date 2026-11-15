@@ -14,7 +14,7 @@ export async function createSupabaseServerClient() {
       // Cookie refresh belongs in a Route Handler/Server Action or proxy.
       // Server Component callers cannot persist cookie updates.
       try { updates.forEach(({ name, value, options }) => store.set(name, value, options)); }
-      catch { /* The auth workstream must implement session refresh before live use. */ }
+      catch { /* Read-only Server Components rely on proxy.ts to persist refreshes. */ }
     },
   } });
 }

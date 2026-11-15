@@ -4,13 +4,13 @@ import Link from "next/link";
 import { PageHeading } from "./page-heading";
 import { TaskList } from "./task-list";
 import { useAssistantWorkspace } from "@/features/assistant/workspace-context";
-import { useOptionalDemoWorkspace } from "@/features/donor-portal/demo-workspace";
+import { useOptionalGivingWorkspace } from "@/features/donation-requests/giving-workspace";
 import { demoCommunications, demoDonors, demoFollowUps, demoGifts } from "@/lib/demo/data";
 import { classifyRetention, formatMoney } from "@/lib/domain/rules";
 
 export function OverviewWorkspace() {
   const workspace = useAssistantWorkspace();
-  const giving = useOptionalDemoWorkspace();
+  const giving = useOptionalGivingWorkspace();
   const donors = workspace?.relationships.donors ?? demoDonors;
   const gifts = [...new Map([...(workspace?.relationships.gifts ?? demoGifts), ...(giving?.giving.gifts ?? [])].map((gift) => [gift.id, gift])).values()];
   const tasks = (workspace?.relationships.tasks ?? demoFollowUps).filter((task) => task.status === "open");

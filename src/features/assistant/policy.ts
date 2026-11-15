@@ -1,4 +1,4 @@
-import type { ActionName, ReadName } from "./contracts";
+import type { ActionName } from "./contracts";
 
 export interface Actor {
   id: string; sessionId: string; mode: "demo" | "live";
@@ -7,10 +7,9 @@ export interface Actor {
 }
 const staffActions: ActionName[] = ["create_follow_up", "update_follow_up", "log_communication", "draft_outreach"];
 const adminActions: ActionName[] = ["create_donor", "update_donor", "assign_owner", "create_request", "update_request"];
-const donorReads: ReadName[] = ["platform_help", "navigate", "list_requests", "my_donor_profile"];
 
 export function canUse(actor: Actor, name: string): boolean {
-  if (actor.audience === "donor") return donorReads.includes(name as ReadName) || (actor.mode === "demo" && actor.role === "donor" && name === "update_my_profile");
+  if (actor.audience !== "staff") return false;
   if (!["admin", "board_member"].includes(actor.role)) return false;
   if (staffActions.includes(name as ActionName)) return true;
   if (adminActions.includes(name as ActionName)) return actor.role === "admin" && (actor.mode === "demo" || !["create_request", "update_request"].includes(name));

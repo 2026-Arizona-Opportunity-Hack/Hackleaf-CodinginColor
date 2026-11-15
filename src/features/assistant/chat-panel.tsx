@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { useOptionalDemoWorkspace } from "@/features/donor-portal/demo-workspace";
+import { useOptionalGivingWorkspace } from "@/features/donation-requests/giving-workspace";
 import { useAssistantWorkspace } from "./workspace-context";
 import { applyDemoAction } from "./demo-state";
 import { demoDate } from "@/lib/demo/data";
@@ -16,7 +16,7 @@ type Review = Omit<Proposal, "before"> & { state: "pending" | "applying" | "appl
 interface Message { id: string; role: "user" | "assistant"; content: string; proposals: Review[]; artifacts: Artifact[]; }
 interface Status { ready: boolean; mode?: string; message: string; }
 const newMessage = (role: Message["role"], content: string): Message => ({ id: crypto.randomUUID(), role, content, proposals: [], artifacts: [] });
-const labels: Record<string, string> = { workspace_overview: "Checking giving and next steps", search_donors: "Finding donor relationships", get_donor: "Reading the donor timeline", list_follow_ups: "Checking next steps", board_workload: "Checking board ownership", list_requests: "Checking the funding queue", my_donor_profile: "Checking your donor demo", prepare_funder_packet: "Assembling a funder packet", preview_import: "Validating the attached CSV", export_data: "Preparing your download", navigate: "Opening the page", platform_help: "Checking how this works" };
+const labels: Record<string, string> = { workspace_overview: "Checking giving and next steps", search_donors: "Finding donor relationships", get_donor: "Reading the donor timeline", list_follow_ups: "Checking next steps", board_workload: "Checking board ownership", list_requests: "Checking the funding queue", prepare_funder_packet: "Assembling a funder packet", preview_import: "Validating the attached CSV", export_data: "Preparing your download", navigate: "Opening the page", platform_help: "Checking how this works" };
 
 function download(filename: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: filename.endsWith(".csv") ? "text/csv;charset=utf-8" : "text/markdown;charset=utf-8" }));
@@ -26,8 +26,8 @@ function download(filename: string, content: string) {
 
 export function ChatPanel({ demo, open, onClose }: { demo: boolean; open: boolean; onClose: () => void }) {
   const pathname = usePathname(), router = useRouter();
-  const workspace = useAssistantWorkspace(), donorWorkspace = useOptionalDemoWorkspace();
-  const audience = pathname.startsWith("/donor-portal") ? "donor" : "staff";
+  const workspace = useAssistantWorkspace(), givingWorkspace = useOptionalGivingWorkspace();
+  const audience = "staff";
   const [status, setStatus] = useState<Status | null>(null), [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState(""), [busy, setBusy] = useState(false), [progress, setProgress] = useState("");
   const [error, setError] = useState(""), [notice, setNotice] = useState("");
@@ -52,15 +52,10 @@ export function ChatPanel({ demo, open, onClose }: { demo: boolean; open: boolea
   useEffect(() => { if (scroller.current && messages.length) scroller.current.scrollTop = scroller.current.scrollHeight; }, [messages, busy, progress]);
   useEffect(() => () => abort.current?.abort(), []);
 
-  function snapshot(forRequest = true): DemoSnapshot | null {
-    if (!demo || !workspace || !donorWorkspace) return null;
-    const profile = donorWorkspace.profiles.find((p) => p.id === donorWorkspace.currentId) ?? null;
-    const gifts = [...new Map([...workspace.relationships.gifts, ...donorWorkspace.giving.gifts].map((gift) => [gift.id, gift])).values()];
-    if (forRequest && audience === "donor") return {
-      relationships: { donors: [], gifts: [], tasks: [], communications: [], drafts: [] },
-      giving: { ...donorWorkspace.giving, gifts: donorWorkspace.giving.gifts.filter((gift) => gift.donorId === profile?.id) }, profile,
-    };
-    return { relationships: { ...workspace.relationships, gifts }, giving: donorWorkspace.giving, profile };
+  function snapshot(): DemoSnapshot | null {
+    if (!demo || !workspace || !givingWorkspace) return null;
+    const gifts=[...new Map([...workspace.relationships.gifts,...givingWorkspace.giving.gifts].map(g=>[g.id,g])).values()];
+    return {relationships:{...workspace.relationships,gifts},giving:givingWorkspace.giving,profile:null};
   }
   function patch(id: string, update: (message: Message) => Message) { setMessages((current) => current.map((m) => m.id === id ? update(m) : m)); }
   function review(id: string, proposalId: string, changes: Partial<Review>) { patch(id, (m) => ({ ...m, proposals: m.proposals.map((p) => p.id === proposalId ? { ...p, ...changes } : p) })); }
@@ -98,14 +93,13 @@ export function ChatPanel({ demo, open, onClose }: { demo: boolean; open: boolea
     if (busy || applying || proposal.state !== "pending") return;
     review(messageId, proposal.id, { state: "applying", error: undefined });
     try {
-      const current = snapshot(false);
+      const current = snapshot();
       const response = await fetch("/api/assistant/actions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: proposal.token, path: pathname, demo: snapshot() }) });
       const result: { error?: string; id: string; mode: string; action?: Action } = await response.json();
       if (!response.ok) throw new Error(result.error ?? "This action could not be applied.");
       if (result.mode === "demo" && current && result.action && !applied.current.has(result.id)) {
         const next = applyDemoAction(current, result.action, result.id, demoDate);
-        workspace!.setRelationships(next.relationships); donorWorkspace!.setGiving(next.giving);
-        if (next.profile) donorWorkspace!.setProfiles(donorWorkspace!.profiles.map((p) => p.id === next.profile!.id ? next.profile! : p));
+        workspace!.setRelationships(next.relationships); givingWorkspace!.setGiving(next.giving);
         applied.current.add(result.id);
       } else if (result.mode === "live") router.refresh();
       review(messageId, proposal.id, { state: "applied" });
@@ -113,14 +107,14 @@ export function ChatPanel({ demo, open, onClose }: { demo: boolean; open: boolea
     } catch (cause) { review(messageId, proposal.id, { state: "pending", error: cause instanceof Error ? cause.message : "Could not apply. Please try again." }); }
   }
 
-  const suggestions = audience === "donor" ? ["How does priority-based giving work?", "Show my donation history", "Help me update my contact preferences"] : pathname === "/imports" ? ["Explain how to import a CSV", "Check the CSV I attached", "How do you detect duplicate gifts?"] : ["Who needs a follow-up?", "Find donors who lapsed this year", "Prepare a funder packet", "Show the funding priorities"];
+  const suggestions = pathname === "/imports" ? ["Explain how to import a CSV", "Check the CSV I attached", "How do you detect duplicate gifts?"] : ["Who needs a follow-up?", "Find donors who lapsed this year", "Prepare a funder packet", "Show the funding priorities"];
   return <section id="hackleaf-assistant" className={styles.panel} role="dialog" aria-modal="false" aria-labelledby="assistant-title" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }}>
     <header className={styles.header}><span className={styles.avatar}><AssistantIcon name="chat" /></span><div><h2 id="assistant-title">Hackleaf assistant</h2><p>{demo ? "Help for your fictional workspace" : "Help for your CIC workspace"}</p></div>
       <button type="button" className={styles.iconButton} aria-label="New conversation" disabled={busy || applying} onClick={() => { setMessages([]); setError(""); setNotice(""); setAttachment(null); textarea.current?.focus(); }}><AssistantIcon name="new" /></button>
       <button type="button" className={styles.iconButton} aria-label="Close assistant panel" onClick={onClose}><AssistantIcon name="close" /></button></header>
-    <div className={styles.context}><span className={styles.liveDot} />{audience === "donor" ? "Donor portal" : "CIC relationship workspace"}<span>{demo ? "Demo" : "Live"}</span></div>
+    <div className={styles.context}><span className={styles.liveDot} />CIC relationship workspace<span>{demo ? "Demo" : "Live"}</span></div>
     <div className={styles.messages} ref={scroller} role="log" aria-label="Assistant conversation" aria-live="off" tabIndex={0}>
-      {!messages.length && <div className={styles.welcome}><span className={styles.welcomeIcon}><AssistantIcon name="chat" /></span><h3>What can we move forward?</h3><p>{audience === "donor" ? "Understand your giving, explore priorities, and manage your demo preferences." : "Find the right relationship. Plan the next step. Turn your records into useful work."}</p>
+      {!messages.length && <div className={styles.welcome}><span className={styles.welcomeIcon}><AssistantIcon name="chat" /></span><h3>What can we move forward?</h3><p>Find the right relationship. Plan the next step. Turn your records into useful work.</p>
         <div className={styles.suggestions}>{suggestions.map((text) => <button key={text} disabled={!status?.ready} onClick={() => void send(undefined, text)}>{text}<span aria-hidden="true">↗</span></button>)}</div>
         <p className={styles.trust}>I can read your workspace and prepare changes. You review and apply each change. Messages and payments are never sent automatically.</p></div>}
       {messages.map((message) => <article key={message.id} className={message.role === "user" ? styles.userMessage : styles.assistantMessage} aria-label={message.role === "user" ? "Your message" : "Assistant reply"}>
@@ -145,7 +139,7 @@ export function ChatPanel({ demo, open, onClose }: { demo: boolean; open: boolea
       <label className={styles.srOnly} htmlFor="assistant-message">Message Hackleaf assistant</label>
       <textarea id="assistant-message" ref={textarea} value={input} maxLength={5000} rows={2} placeholder={status?.ready ? "Ask, find, or get something done…" : "The assistant is connecting…"} disabled={!status?.ready || busy || applying} onChange={(e) => setInput(e.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
       <div className={styles.composerActions}><input ref={fileInput} hidden type="file" accept=".csv,text/csv" tabIndex={-1} onChange={async (event) => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return; if (file.size > 50000) { setError("Attach a CSV smaller than 50 KB."); return; } setAttachment({ name: file.name.slice(0, 170), csv: await file.text() }); setError(""); }} />
-        <button type="button" className={styles.iconButton} aria-label="Attach CSV for review" disabled={!status?.ready || busy || audience === "donor"} onClick={() => fileInput.current?.click()}><AssistantIcon name="attach" /></button><span>Shift + Enter for a new line</span>
+        <button type="button" className={styles.iconButton} aria-label="Attach CSV for review" disabled={!status?.ready || busy} onClick={() => fileInput.current?.click()}><AssistantIcon name="attach" /></button><span>Shift + Enter for a new line</span>
         {busy ? <button type="button" className={styles.send} aria-label="Stop assistant response" onClick={() => abort.current?.abort()}><AssistantIcon name="stop" /></button> : <button type="submit" className={styles.send} aria-label="Send message" disabled={!input.trim() || !status?.ready || applying}><AssistantIcon name="send" /></button>}</div>
     </form>
     <footer className={styles.footer}>Powered by OpenAI · Check important details</footer>

@@ -1,4 +1,6 @@
 "use client";
+import { useAIPriorities } from "./use-ai-priorities";
+import { priorityOrder } from "./priority-planner";
 
 import { useRef, useState } from "react";
 import { formatMoney } from "@/lib/domain/rules";
@@ -8,7 +10,7 @@ import { allocateDonations, unallocatedCents } from "./allocation";
 import { DemoDonationForm } from "./demo-donation-form";
 import { RequestDetails, RequestForm } from "./request-drawer";
 import { downloadRequestsSpreadsheet } from "./spreadsheet";
-import { useDemoWorkspace } from "@/features/donor-portal/demo-workspace";
+import { useGivingWorkspace } from "@/features/donation-requests/giving-workspace";
 import styles from "./requests.module.css";
 
 type Filter = "All requests" | "Active" | "Completed" | "Drafts";
@@ -20,8 +22,9 @@ function RequestIcon() {
   </svg>;
 }
 
-export function RequestWorkspace() {
-  const { giving: store, setGiving: setStore } = useDemoWorkspace();
+export function RequestWorkspace({aiEnabled=false}:{aiEnabled?:boolean}) {
+  const priorities=useAIPriorities(aiEnabled);
+  const { giving: store, setGiving: setStore } = useGivingWorkspace();
   const { requests, gifts, allocations } = store;
   const requestFunding = (request: DonationRequest) => funding(request, allocations);
   const [filter, setFilter] = useState<Filter>("All requests");
@@ -37,7 +40,7 @@ export function RequestWorkspace() {
     if (request.state !== "draft") { totals.raised += data.raisedCents; totals.remaining += data.remainingCents; }
   });
   const openPriority = Math.min(...requests.filter((request) => request.state === "active" && requestFunding(request).remainingCents > 0).map((request) => request.priority));
-  const visible = [...requests].sort((a, b) => a.priority - b.priority || (Date.parse(a.createdAt) - Date.parse(b.createdAt)) || a.id.localeCompare(b.id)).filter((request) => {
+  const visible = priorityOrder(requests).filter((request) => {
     const status = requestFunding(request).status;
     const matchesStatus = filter === "All requests" || (filter === "Drafts" ? status === "Draft" : status === filter);
     const text = `${request.campaign} ${request.note} ${programs.find((program) => program.id === request.program_id)?.name}`;
@@ -56,7 +59,9 @@ export function RequestWorkspace() {
   function save(request: DonationRequest) {
     const editing = requests.some((item) => item.id === request.id);
     const nextRequests = editing ? requests.map((item) => item.id === request.id ? request : item) : [...requests, request];
-    setStore({ requests: nextRequests, gifts, allocations: allocateDonations(nextRequests, gifts, allocations) });
+    const nextStore={ requests: nextRequests, gifts, allocations: allocateDonations(nextRequests, gifts, allocations) };
+    setStore(nextStore);
+    if(aiEnabled)void priorities.rank(nextStore);
     setFilter(request.state === "draft" ? "Drafts" : "All requests"); setQuery("");
     setMessage(`Demo request ${request.state === "draft" ? "saved as a draft" : editing ? "updated" : "created"}. Changes reset on reload.`);
     dismiss();
@@ -68,6 +73,7 @@ export function RequestWorkspace() {
       <button className={styles.primary} onClick={() => open({ kind: "create" })}><span aria-hidden="true">＋</span> Make a donation request</button></div>
     </header>
     <p className={styles.demoNote}>Fictional demo · Requests and edits reset on reload. No payments are collected.</p>
+    <div className={styles.aiPriorityNote}><div><strong>{priorities.pending?"AI is assigning priorities…":priorities.assigned?"AI priorities assigned":"Automatic priorities"}</strong><p>{priorities.notice}</p><small>Funded cards keep their priority. Successful AI rankings put unfunded active requests ahead of drafts. Existing donations never move. Lowest number appears first.</small></div><button className={styles.secondary} disabled={!aiEnabled||priorities.pending} onClick={()=>void priorities.rank(store)}>{priorities.pending?"Ranking…":"Refresh AI priorities"}</button></div>
     <dl className={styles.summary}><div><dt>Active requests</dt><dd>{counts.Active}</dd></div><div><dt>Raised toward requests</dt><dd>{formatMoney(totals.raised)}</dd></div><div><dt>Still needed</dt><dd>{formatMoney(totals.remaining)}</dd></div></dl>
     <div className={styles.allocationNote}><p>Each card has a unique priority. New donations fill the lowest-numbered unfinished request before moving to the next. Program-specific gifts keep their designation.</p>
       <div><strong>{formatMoney(unallocatedCents(gifts, allocations))} unallocated</strong><button className={styles.secondary} onClick={() => open({ kind: "donate" })}>Record a demo donation</button></div></div>

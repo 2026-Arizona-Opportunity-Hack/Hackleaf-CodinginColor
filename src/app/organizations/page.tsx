@@ -1,0 +1,5 @@
+import styles from "@/features/client-p2/p2.module.css";
+import { organizations } from "@/features/client-p2/tenants";
+import { currentTenant } from "@/features/client-p2/tenant-server";
+import { isDemoWorkspace } from "@/lib/workspace";
+export default async function Organizations(){if(!isDemoWorkspace())return <h1>Organization demo is disabled in live mode.</h1>;const selected=await currentTenant();return <section className={styles.page}><h1>Choose your organization.</h1><p>Each organization has separate accounts, clients, visits, documents and settings. Switching signs you out; sign in to the selected organization.</p><form action="/auth/organization" method="post"><label>Organization <select aria-label="Organization" name="organization" defaultValue={selected}>{organizations.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></label><button className="button">Switch organization</button></form><p>Both fictional organizations initially offer the documented demo Admin and Staff credentials. Newly registered accounts belong only to the selected organization.</p></section>;}

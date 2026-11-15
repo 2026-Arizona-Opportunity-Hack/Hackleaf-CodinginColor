@@ -1,0 +1,2 @@
+import type { MetadataRoute } from "next";
+export default function manifest():MetadataRoute.Manifest{return {name:"Hackleaf nonprofit workspace",short_name:"Hackleaf",description:"Clients, visits and donor relationships",start_url:"/dashboard",scope:"/",display:"standalone",background_color:"#ffffff",theme_color:"#007a3d",icons:[{src:"/pwa-192.png",sizes:"192x192",type:"image/png",purpose:"any"},{src:"/pwa-512.png",sizes:"512x512",type:"image/png",purpose:"any"}]};}

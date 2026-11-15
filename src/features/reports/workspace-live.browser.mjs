@@ -9,7 +9,7 @@ try {
   for (const path of ["/follow-ups", "/follow-ups?ownerId=member-2", "/reports", "/reports?donorId=00000000-0000-4000-8000-000000000002"]) {
     const response = await page.goto(`${base}${path}`);
     const html = await response.text();
-    await page.getByRole("heading", { name: "Connect your live workspace." }).waitFor();
+    await page.getByRole("heading", { name: /Connect your live workspace\.|Complete this live integration\./ }).waitFor();
     assert.doesNotMatch(html, /Mesa Learning Fund|Jordan Ellis|donor1@example.org|fictional-2026-1/);
     assert.equal(await page.getByRole("button", { name: "Create demo next step" }).count(), 0);
     assert.equal(await page.getByRole("article", { name: "Funder packet preview" }).count(), 0);

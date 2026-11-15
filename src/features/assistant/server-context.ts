@@ -19,13 +19,13 @@ export interface ToolContext {
 export async function createContext(request: Request, path: string, snapshot: DemoSnapshot | null, sessionId?: string): Promise<ToolContext> {
   const session = sessionId ?? sessionFor(request);
   if (!session) throw new AssistantFailure("Open the assistant again to start a secure session.", 401);
-  const audience = path.startsWith("/donor-portal") ? "donor" : "staff";
+  const audience = "staff";
   if (!safePath(path, "staff")) throw new AssistantFailure("This page is not supported by the assistant.");
   let db: Database | null = null;
   let actor: Actor;
   if (isDemoWorkspace()) {
     if (process.env.NODE_ENV === "production" && process.env.AI_DEMO_ENABLED !== "true") throw new AssistantFailure("The public demo assistant is disabled. Enable AI_DEMO_ENABLED deliberately to allow paid demo requests.", 503);
-    actor = { id: `demo:${session}:${audience}:${audience === "donor" ? snapshot?.profile?.id ?? "visitor" : "staff"}`, sessionId: session, audience, mode: "demo", role: audience === "staff" ? "admin" : snapshot?.profile ? "donor" : "visitor", today: demoDate };
+    actor = { id: `demo:${session}:staff:staff`, sessionId: session, audience, mode: "demo", role: "admin", today: demoDate };
   } else {
     try { db = await createSupabaseServerClient(); } catch { throw new AssistantFailure("Live authentication is not configured.", 503); }
     const { data: { user }, error } = await db.auth.getUser();

@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { demoDate, demoMembers } from "@/lib/demo/data";
 import { demoRequests, demoRequestGifts } from "@/features/donation-requests/requests";
 import { allocateDonations } from "@/features/donation-requests/allocation";
-import { initialDemoProfile } from "@/features/donor-portal/model";
 import { actionBefore, applyDemoAction, initialRelationships } from "./demo-state";
 import { chatRequestSchema, parseAction, safePath, type AssistantEvent, type DemoSnapshot } from "./contracts";
 import { canUse, type Actor } from "./policy";
@@ -16,7 +15,7 @@ import { z } from "zod";
 
 const actor: Actor = { id: "demo-user", sessionId: "session-one", mode: "demo", audience: "staff", role: "admin", today: demoDate };
 export function fixture(): DemoSnapshot {
-  return structuredClone({ relationships: initialRelationships(), giving: { requests: demoRequests, gifts: demoRequestGifts, allocations: allocateDonations(demoRequests, demoRequestGifts) }, profile: initialDemoProfile });
+  return structuredClone({ relationships: initialRelationships(), giving: { requests: demoRequests, gifts: demoRequestGifts, allocations: allocateDonations(demoRequests, demoRequestGifts) }, profile: null });
 }
 function context(current = fixture(), who = actor): ToolContext {
   return { actor: who, snapshot: current, db: null, attachment: null, data: async () => ({ ...current.relationships, members: demoMembers, evidence: [], partial: false }) };
@@ -29,8 +28,8 @@ describe("assistant authority", () => {
     expect(canUse(board, "create_follow_up")).toBe(true);
     for (const name of ["create_donor", "assign_owner", "board_workload", "preview_import", "execute_sql"]) expect(canUse(board, name)).toBe(false);
     const donor = { ...actor, audience: "donor" as const, role: "donor" as const };
-    expect(canUse(donor, "my_donor_profile")).toBe(true);
-    expect(canUse(donor, "update_my_profile")).toBe(true);
+    expect(canUse(donor, "my_donor_profile")).toBe(false);
+    expect(canUse(donor, "update_my_profile")).toBe(false);
     for (const name of ["search_donors", "get_donor", "export_data", "draft_outreach"]) expect(canUse(donor, name)).toBe(false);
     expect(canUse({ ...donor, role: "visitor" }, "update_my_profile")).toBe(false);
     expect(canUse({ ...actor, mode: "live" }, "create_request")).toBe(false);
@@ -124,8 +123,6 @@ describe("grounded tools and bounded agent", () => {
     expect(lapsed).toMatchObject({ total: 3 });
     const portal = context(fixture(), { ...actor, audience: "donor", role: "donor" });
     await expect(runTool(portal, "get_donor", { donorId: "anything" }, () => {})).rejects.toThrow();
-    const mine = await runTool(portal, "my_donor_profile", {}, () => {}) as { gifts: { donorId: string }[] };
-    expect(mine.gifts.every((g) => g.donorId === initialDemoProfile.id)).toBe(true);
     expect(availableTools(portal).some((t) => t.name === "search_donors")).toBe(false);
   });
   it("previews an attached CSV without importing and produces honest packet downloads", async () => {
