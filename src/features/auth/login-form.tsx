@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,7 @@ export function LoginForm() {
       const supabase = createSupabaseBrowserClient();
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) { setError(err.message); setLoading(false); return; }
-      window.location.href = "/";
+      router.push("/");
     } catch {
       setError("Could not connect. Check your network.");
       setLoading(false);
